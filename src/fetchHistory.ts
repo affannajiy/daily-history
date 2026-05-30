@@ -195,8 +195,8 @@ async function withRetry(
 }
 
 /**
- * Generates the digest from the verified event list. Tries Gemini first and
- * falls back to Groq if Gemini fails for any reason.
+ * Generates the digest from the verified event list. Tries Groq first and
+ * falls back to Gemini if Groq fails for any reason.
  */
 export async function generateHistory(
   month: string,
@@ -224,11 +224,11 @@ export async function generateHistory(
   });
 
   try {
-    const data = await withRetry(callGemini, prompt);
-    return { data: enforce(data), provider: "Gemini" };
-  } catch (err) {
-    console.warn("Gemini failed, falling back to Groq:", err);
     const data = await withRetry(callGroq, prompt);
     return { data: enforce(data), provider: "Groq" };
+  } catch (err) {
+    console.warn("Groq failed, falling back to Gemini:", err);
+    const data = await withRetry(callGemini, prompt);
+    return { data: enforce(data), provider: "Gemini" };
   }
 }

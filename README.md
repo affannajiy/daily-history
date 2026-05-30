@@ -17,13 +17,16 @@ Each digest contains three sections:
 | -------------- | --------------------------------------------------- |
 | Runtime        | Node.js 20+ + TypeScript                            |
 | Scheduler      | GitHub Actions (`cron: '30 23 * * *'` UTC)          |
-| AI (primary)   | Google Gemini (`gemini-2.0-flash`, free tier)       |
-| AI (fallback)  | Groq (`llama-3.3-70b-versatile`, free tier)         |
+| AI (primary)   | Groq (`llama-3.3-70b-versatile`, free tier)         |
+| AI (fallback)  | Google Gemini (`gemini-2.0-flash`, free tier)       |
+| Event grounding| Wikimedia "On This Day" feed (verified dated events)|
 | Email delivery | Resend                                              |
 | Timezone       | `luxon`, pinned to `Asia/Kuala_Lumpur`              |
 
-If Gemini fails for any reason (quota, network, malformed output), the program
-automatically falls back to Groq.
+If Groq fails for any reason (quota, network, malformed output), the program
+automatically falls back to Gemini. Either way, the events themselves come from
+the verified On This Day feed — the AI only selects and rewrites them, so it
+cannot invent events or dates.
 
 ## Project structure
 
@@ -31,7 +34,9 @@ automatically falls back to Groq.
 daily-history/
 ├── src/
 │   ├── index.ts          # Entry point — computes today's date in MYT
-│   ├── fetchHistory.ts   # AI content generation with Gemini→Groq fallback
+│   ├── fetchOnThisDay.ts # Verified dated events from Wikimedia
+│   ├── regions.ts        # Deterministic SEA / Malaysia classification
+│   ├── fetchHistory.ts   # AI selects + rewrites, Groq→Gemini fallback
 │   ├── buildEmail.ts     # HTML email template (red/black/white/grey)
 │   ├── sendEmail.ts      # Resend delivery
 │   ├── preview.ts        # Renders preview.html with sample data
@@ -73,15 +78,16 @@ npm run preview        # writes preview.html — open it in a browser
   your own domain, verify it in Resend and set `FROM_EMAIL`, e.g.
   `History Today <news@yourdomain.com>`.
 
-### 2. Gemini (primary AI)
-
-- Go to [aistudio.google.com](https://aistudio.google.com) → **Get API Key**.
-- Put it in `.env` as `GEMINI_API_KEY`. Free tier is ~1,500 requests/day.
-
-### 3. Groq (fallback AI)
+### 2. Groq (primary AI)
 
 - Sign up at [console.groq.com](https://console.groq.com) → **API Keys** → **Create API Key**.
 - Put it in `.env` as `GROQ_API_KEY`.
+
+### 3. Gemini (fallback AI)
+
+- Go to [aistudio.google.com](https://aistudio.google.com) → **Get API Key**, put it in `.env` as `GEMINI_API_KEY`.
+- Only used if Groq fails. Note the free tier is region-dependent — some
+  projects return `limit: 0`, in which case the program simply stays on Groq.
 
 ## Deploying the daily schedule (GitHub Actions)
 
