@@ -28,6 +28,15 @@ automatically falls back to Gemini. Either way, the events themselves come from
 the verified On This Day feed — the AI only selects and rewrites them, so it
 cannot invent events or dates.
 
+Each section also carries a **References** list. Every event is handed to the AI
+with a verified Wikipedia link (built from the feed's exact article titles, so
+the URL is always real), which is always cited — Wikipedia in turn carries its
+own sourced references at the bottom of each article. The AI adds other
+authoritative sources it genuinely knows (Britannica, Library of Congress,
+academic works), and the Malaysian section is steered toward Arkib Negara
+Malaysia and other Malaysian archival authorities. The AI is told never to
+invent a URL.
+
 ## Project structure
 
 ```

@@ -52,12 +52,23 @@ export async function fetchOnThisDay(
   return events;
 }
 
+/**
+ * Builds a real Wikipedia article URL from an exact article title. The titles
+ * come straight from the On This Day feed, so these links are guaranteed valid
+ * and can be cited verbatim — the AI never has to guess a URL.
+ */
+export function wikipediaUrl(title: string): string {
+  return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+}
+
 /** Formats the verified events as a compact numbered list for the prompt. */
 export function formatEventsForPrompt(events: OnThisDayEvent[]): string {
   return events
     .map((e, i) => {
       const topics = e.pages.length ? ` [topics: ${e.pages.slice(0, 4).join(", ")}]` : "";
-      return `${i + 1}. (${e.year}) ${e.text}${topics}`;
+      // Hand the AI a verified Wikipedia link it can cite as-is.
+      const wiki = e.pages.length ? ` [wikipedia: ${wikipediaUrl(e.pages[0])}]` : "";
+      return `${i + 1}. (${e.year}) ${e.text}${topics}${wiki}`;
     })
     .join("\n");
 }

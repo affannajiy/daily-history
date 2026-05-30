@@ -49,7 +49,13 @@ Your tasks:
 3. "malaysia": From the MALAYSIA list, pick the most relevant event and write it up. If that list is "NONE", set this field to null.
 Do not reuse the same event for more than one section.
 
-For each chosen event, write a "synopsis" and "impact", list "keyFigures", and provide a "references" array of authoritative sources (Britannica, Library of Congress, Arkib Negara Malaysia, academic works, etc.) you would point a reader to for verification. Only include a "url" when you are confident it is a real, correct link; otherwise omit the "url" field.
+For each chosen event, write a "synopsis" and "impact", list "keyFigures", and provide a "references" array of sources a reader can use to verify and learn more.
+
+REFERENCE RULES:
+- ALWAYS include the Wikipedia article as a reference, using the exact [wikipedia: ...] link given for that event in the list above. Wikipedia is a valid starting point and carries its own cited sources at the bottom of every article, which readers can follow further.
+- Add other authoritative sources where you genuinely know them: Encyclopaedia Britannica, Library of Congress, JSTOR, university presses, academic works, etc.
+- For the MALAYSIA section, prefer Malaysian authorities such as Arkib Negara Malaysia (National Archives of Malaysia), Perpustakaan Negara Malaysia (National Library), Dewan Bahasa dan Pustaka, or reputable Malaysian academic/history works — in addition to the Wikipedia link.
+- Only include a "url" when you are confident it is a real, correct link (the [wikipedia: ...] links provided above always qualify); otherwise give just the "title" and omit the "url" field. Never invent a URL.
 
 Return ONLY valid JSON, no markdown, no preamble, in exactly this shape (use null for southeastAsia/malaysia if no listed event qualifies):
 
