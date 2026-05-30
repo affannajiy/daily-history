@@ -1,0 +1,27 @@
+name: Daily History Email
+
+on:
+  schedule:
+    # 23:30 UTC = 07:30 AM MYT (UTC+8) the next morning.
+    - cron: '30 23 * * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm start
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          # Optional: set a verified sender, e.g. "History Today <news@yourdomain.com>"
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
