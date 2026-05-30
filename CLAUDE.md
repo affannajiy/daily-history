@@ -9,6 +9,7 @@ npm run dev      # Run the full pipeline via tsx (FETCHES + GENERATES + SENDS a 
 npm run preview  # Render preview.html from sample data — no API keys, no email sent
 npm run build    # tsc → dist/
 npm start        # node dist/index.js (what CI runs)
+npm run build:avatar  # rasterize assets/avatar/avatar.svg → avatar-512/256/128.png
 ```
 
 There is no test suite or linter. `npm run preview` is the safe way to iterate on
@@ -77,3 +78,10 @@ architecture makes wrong dates structurally impossible:
   by a schema.
 - CI runs on Node 22 (`actions/setup-node@v5`); local dev is Node 24. TypeScript
   is strict, CommonJS, compiling `src/` → `dist/`.
+- **The sender avatar (`assets/avatar/`) is a client-level inbox asset, not part
+  of the email.** `build-avatar.ts` (run via `build:avatar`, uses `sharp`)
+  rasterizes `avatar.svg` into PNGs; `bimi.svg` is a Tiny-PS BIMI profile. None of
+  this is wired into the pipeline — the avatar only appears once registered with
+  Gravatar (on an owned FROM address) or BIMI (own domain + DMARC + DNS). Do not
+  add the avatar as an `<img>` in the email body. `scripts/` is outside `rootDir`,
+  so `npm run build` (tsc) does not type-check it; it runs via tsx.

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 512 512">
+  <title>Daily History</title>
+  <rect x="0" y="0" width="512" height="512" fill="#111111"/>
+  <circle cx="256" cy="256" r="228" fill="none" stroke="#4A4A4A" stroke-width="2"/>
+  <circle cx="256" cy="256" r="221" fill="none" stroke="#CC1100" stroke-width="4"/>
+  <rect x="156" y="132" width="200" height="14" rx="2" fill="#FFFFFF"/>
+  <rect x="156" y="366" width="200" height="14" rx="2" fill="#FFFFFF"/>
+  <polygon points="156,146 356,146 256,256" fill="#FFFFFF"/>
+  <polygon points="156,366 356,366 256,256" fill="#CC1100"/>
+  <rect x="252" y="250" width="8" height="12" fill="#CC1100"/>
+</svg>

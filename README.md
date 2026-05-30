@@ -123,3 +123,79 @@ GEMINI_MODEL=gemini-2.0-flash
 GROQ_MODEL=llama-3.3-70b-versatile
 FROM_EMAIL=History Today <onboarding@resend.dev>
 ```
+
+## Sender avatar
+
+The little image clients show next to the sender name is **not** part of the
+email body — it's an inbox/client-level asset keyed to the FROM address or the
+sending domain. The artwork lives in `assets/avatar/`:
+
+| File              | Purpose                                              |
+| ----------------- | ---------------------------------------------------- |
+| `avatar.svg`      | Master vector (hourglass = "on this day in history") |
+| `avatar-512.png`  | Canonical raster upload (Gravatar, BIMI rasterizers) |
+| `avatar-256.png`  | Downscale                                            |
+| `avatar-128.png`  | Downscale                                            |
+| `bimi.svg`        | BIMI-compliant SVG Tiny-PS profile                   |
+
+Regenerate the PNGs from the SVG any time:
+
+```bash
+npm run build:avatar   # writes avatar-512/256/128.png
+```
+
+The design is flat and circle-safe (everything sits inside the inscribed circle
+with margin, no fine text), so it survives the circular crop and ~32px sizes that
+Gmail and Apple Mail apply.
+
+There are two independent ways to make it appear, and **neither works with the
+default `onboarding@resend.dev` sender** — that address is shared and not yours
+to claim. Both paths require sending from an address/domain you control, so the
+first real step is verifying a domain in Resend and setting `FROM_EMAIL` to
+something like `History Today <news@yourdomain.com>`. After that, Gravatar is the
+quick win and BIMI is what Gmail prefers.
+
+> Until `FROM_EMAIL` is on an address you own, the avatar will **not** change —
+> clients keep showing their default letter tile. Generating/committing the PNGs
+> does nothing on its own; the image must be registered with Gravatar or BIMI.
+
+### 1. Gravatar — quickest, once you own the FROM address
+
+Many clients pull the sender avatar from [Gravatar](https://gravatar.com), keyed
+to the email address in `FROM_EMAIL`.
+
+1. Create a Gravatar account on the **exact** address you send from (the address
+   in `FROM_EMAIL` — must be one you own and can verify).
+2. Upload `assets/avatar/avatar-512.png` as the profile image.
+3. Confirm/verify that email on the account.
+
+Needs no DNS, just a verified address. (Coverage varies by client; Gmail web in
+particular leans on BIMI rather than Gravatar.)
+
+### 2. BIMI — works once you own + verify a domain in Resend
+
+[BIMI](https://bimigroup.org) lets clients like Gmail display your logo for
+**authenticated** mail sent from your own domain. Requirements:
+
+1. **Pass DMARC** on the sending domain at `p=quarantine` or stronger (with SPF
+   and DKIM aligned — Resend's domain setup walks you through SPF/DKIM). Example
+   DMARC TXT record at `_dmarc.<domain>`:
+
+   ```txt
+   v=DMARC1; p=quarantine; rua=mailto:dmarc@<domain>
+   ```
+
+2. **Use the BIMI profile** at `assets/avatar/bimi.svg`. It's already SVG Tiny-PS
+   compliant (square `viewBox`, `baseProfile="tiny-ps"`, a `<title>`, no external
+   references) — regenerate it from `avatar.svg` only if you change the artwork.
+
+3. **Host it over HTTPS** at a stable URL, e.g. `https://<host>/bimi.svg`.
+
+4. **Add a DNS TXT record** at `default._bimi.<domain>`:
+
+   ```txt
+   v=BIMI1; l=https://<host>/bimi.svg;
+   ```
+
+A **VMC** (Verified Mark Certificate) is *optional* — it's only needed for the
+blue verified checkmark next to the logo, not for the logo itself.
