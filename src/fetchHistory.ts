@@ -1,60 +1,86 @@
 import { HistoryData, HistoryResult, HistorySection } from "./types";
+import { OnThisDayEvent, formatEventsForPrompt } from "./fetchOnThisDay";
+import { classifyRegions } from "./regions";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 /**
- * Builds the historian prompt for a given date. Both providers receive the
- * exact same instructions so the output shape is identical regardless of which
- * one answers.
+ * Builds the historian prompt. Crucially, the AI is given a VERIFIED list of
+ * events that actually occurred on this day and is told it may only select and
+ * rewrite from that list — it must not invent events, dates, or years. This is
+ * what eliminates the "famous event snapped onto the wrong day" failure mode.
  */
-export function buildPrompt(month: string, day: number, year: number): string {
-  return `You are a senior historian and writer for National Geographic. Today's date is ${month} ${day}, ${year}.
+export function buildPrompt(
+  month: string,
+  day: number,
+  events: OnThisDayEvent[],
+  seaCandidates: OnThisDayEvent[],
+  malaysiaCandidates: OnThisDayEvent[]
+): string {
+  const seaList = seaCandidates.length
+    ? formatEventsForPrompt(seaCandidates)
+    : "NONE";
+  const malaysiaList = malaysiaCandidates.length
+    ? formatEventsForPrompt(malaysiaCandidates)
+    : "NONE";
 
-Write a daily history digest for THREE events that occurred on ${month} ${day} in history. Return ONLY valid JSON, no markdown, no preamble.
+  return `You are a senior historian and writer for National Geographic. The date is ${month} ${day}.
 
-Use authoritative sources such as Britannica, Library of Congress, Arkib Negara Malaysia, and established historical records. Do NOT use Wikipedia as a primary source.
+Below are VERIFIED historical events that genuinely occurred on ${month} ${day} across different years. The year is given in parentheses before each event. These are the ONLY events you may use.
 
-- "global" must be a globally significant event.
-- "southeastAsia" must be a real event from Southeast Asia (Indonesia, Thailand, Vietnam, Philippines, Singapore, Myanmar, Cambodia, Laos, Brunei, or Timor-Leste).
-- "malaysia" must specifically relate to Malaysian history (pre-colonial Tanah Melayu, colonial Malaya, or modern Malaysia).
+STRICT RULES:
+- Use ONLY events from the lists below. Never introduce an event that is not listed.
+- Never change, guess, or round a year. Copy the year exactly as given.
+- Never claim an event happened on a different day than ${month} ${day}.
 
-For each event, include a "references" array listing the authoritative sources you actually drew the information from (2-4 per event). Use the publication or institution and the specific work, e.g. "Encyclopaedia Britannica — Fall of Constantinople". Only include a "url" when you are confident it is a real, correct link; if you are not certain of the exact URL, omit the "url" field entirely rather than guessing.
+ALL VERIFIED EVENTS FOR ${month} ${day} (use for the global headline):
+${formatEventsForPrompt(events)}
 
-Return JSON in exactly this shape:
+SOUTHEAST ASIA EVENTS (already filtered for you):
+${seaList}
+
+MALAYSIA / TANAH MELAYU / MALAYA EVENTS (already filtered for you):
+${malaysiaList}
+
+Your tasks:
+1. "global": From ALL verified events, pick the SINGLE most globally significant one and expand it into rich, cinematic, National Geographic-style narrative prose (3-4 paragraphs).
+2. "southeastAsia": From the SOUTHEAST ASIA EVENTS list, pick the most significant event and write it up. If that list is "NONE", set this field to null.
+3. "malaysia": From the MALAYSIA list, pick the most relevant event and write it up. If that list is "NONE", set this field to null.
+Do not reuse the same event for more than one section.
+
+For each chosen event, write a "synopsis" and "impact", list "keyFigures", and provide a "references" array of authoritative sources (Britannica, Library of Congress, Arkib Negara Malaysia, academic works, etc.) you would point a reader to for verification. Only include a "url" when you are confident it is a real, correct link; otherwise omit the "url" field.
+
+Return ONLY valid JSON, no markdown, no preamble, in exactly this shape (use null for southeastAsia/malaysia if no listed event qualifies):
 
 {
   "global": {
     "title": "Event name",
-    "year": "Year it occurred",
+    "year": "Exact year from the list",
     "location": "City, Country",
-    "synopsis": "3-4 paragraphs of rich, cinematic, NatGeo-style narrative prose",
-    "keyFigures": [
-      { "name": "Full name", "role": "Their role", "significance": "Why they matter" }
-    ],
+    "synopsis": "3-4 paragraphs of cinematic NatGeo-style prose",
+    "keyFigures": [{ "name": "Full name", "role": "Their role", "significance": "Why they matter" }],
     "impact": "2-3 paragraphs on how this event shaped society from then until today",
-    "references": [
-      { "title": "Publication — specific work", "url": "https://... (omit if unsure)" }
-    ]
+    "references": [{ "title": "Publication — specific work", "url": "https://... (omit if unsure)" }]
   },
   "southeastAsia": {
     "title": "Event name",
-    "year": "Year",
+    "year": "Exact year from the list",
     "location": "City, Country",
     "synopsis": "1-2 paragraph narrative",
     "keyFigures": [{ "name": "", "role": "", "significance": "" }],
     "impact": "1 paragraph",
     "references": [{ "title": "Publication — specific work" }]
-  },
+  } OR null,
   "malaysia": {
     "title": "Event name",
-    "year": "Year",
+    "year": "Exact year from the list",
     "location": "Location in Malaysia/Malaya/Tanah Melayu",
     "synopsis": "1-2 paragraph narrative",
     "keyFigures": [{ "name": "", "role": "", "significance": "" }],
     "impact": "1 paragraph",
     "references": [{ "title": "Publication — specific work" }]
-  }
+  } OR null
 }`;
 }
 
@@ -63,7 +89,6 @@ function extractJson(raw: string): string {
   const trimmed = raw.trim();
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenced) return fenced[1].trim();
-  // Otherwise grab from the first { to the last } to drop any stray prose.
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");
   if (start !== -1 && end !== -1 && end > start) {
@@ -83,16 +108,21 @@ function isValidSection(s: unknown): s is HistorySection {
   );
 }
 
+/** Coerces a regional section to null if the model returned something invalid. */
+function normalizeOptional(s: unknown): HistorySection | null {
+  return isValidSection(s) ? s : null;
+}
+
 function parseHistory(raw: string): HistoryData {
-  const data = JSON.parse(extractJson(raw)) as HistoryData;
-  if (
-    !isValidSection(data.global) ||
-    !isValidSection(data.southeastAsia) ||
-    !isValidSection(data.malaysia)
-  ) {
-    throw new Error("AI response is missing one or more required sections.");
+  const data = JSON.parse(extractJson(raw)) as any;
+  if (!isValidSection(data?.global)) {
+    throw new Error("AI response is missing a valid global section.");
   }
-  return data;
+  return {
+    global: data.global,
+    southeastAsia: normalizeOptional(data.southeastAsia),
+    malaysia: normalizeOptional(data.malaysia),
+  };
 }
 
 async function callGemini(prompt: string): Promise<HistoryData> {
@@ -105,7 +135,8 @@ async function callGemini(prompt: string): Promise<HistoryData> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json", temperature: 0.7 },
+      // temperature 0 → factual/deterministic selection, not creative recall.
+      generationConfig: { responseMimeType: "application/json", temperature: 0 },
     }),
   });
 
@@ -133,7 +164,7 @@ async function callGroq(prompt: string): Promise<HistoryData> {
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      temperature: 0.7,
+      temperature: 0,
     }),
   });
 
@@ -155,7 +186,7 @@ async function withRetry(
   try {
     return await fn(prompt);
   } catch (err) {
-    if (err instanceof SyntaxError || /missing one or more/.test(String(err))) {
+    if (err instanceof SyntaxError || /missing a valid/.test(String(err))) {
       console.warn("Malformed JSON from provider, retrying once...");
       return await fn(prompt);
     }
@@ -164,21 +195,40 @@ async function withRetry(
 }
 
 /**
- * Generates the digest. Tries Gemini first and falls back to Groq if Gemini
- * fails for any reason (quota, network, malformed output).
+ * Generates the digest from the verified event list. Tries Gemini first and
+ * falls back to Groq if Gemini fails for any reason.
  */
 export async function generateHistory(
   month: string,
   day: number,
-  year: number
+  events: OnThisDayEvent[]
 ): Promise<HistoryResult> {
-  const prompt = buildPrompt(month, day, year);
+  if (!events.length) {
+    throw new Error(
+      "No verified events were available for this day; refusing to generate unsourced content."
+    );
+  }
+
+  const { southeastAsia, malaysia } = classifyRegions(events);
+  console.log(
+    `Regional candidates — SEA: ${southeastAsia.length}, Malaysia: ${malaysia.length}.`
+  );
+  const prompt = buildPrompt(month, day, events, southeastAsia, malaysia);
+
+  // If code found no candidate for a region, force null regardless of what the
+  // model returns — it must never fabricate one to fill the slot.
+  const enforce = (data: HistoryData): HistoryData => ({
+    global: data.global,
+    southeastAsia: southeastAsia.length ? data.southeastAsia : null,
+    malaysia: malaysia.length ? data.malaysia : null,
+  });
+
   try {
     const data = await withRetry(callGemini, prompt);
-    return { data, provider: "Gemini" };
+    return { data: enforce(data), provider: "Gemini" };
   } catch (err) {
     console.warn("Gemini failed, falling back to Groq:", err);
     const data = await withRetry(callGroq, prompt);
-    return { data, provider: "Groq" };
+    return { data: enforce(data), provider: "Groq" };
   }
 }

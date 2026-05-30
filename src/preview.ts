@@ -40,21 +40,9 @@ const sample: HistoryData = {
       { title: "Encyclopaedia Britannica — Majapahit empire" },
     ],
   },
-  malaysia: {
-    title: "Founding of the Melaka Sultanate",
-    year: "c. 1400",
-    location: "Melaka, Tanah Melayu",
-    synopsis:
-      "Parameswara, a prince in exile, established a trading port beneath a Melaka tree that would grow into the crossroads of the eastern seas.",
-    keyFigures: [
-      { name: "Parameswara", role: "Founder", significance: "Established Melaka as a global entrepôt." },
-    ],
-    impact: "Melaka became the cultural and commercial heart of the Malay world.",
-    references: [
-      { title: "Arkib Negara Malaysia — Kesultanan Melayu Melaka" },
-      { title: "Sejarah Melayu (Malay Annals)" },
-    ],
-  },
+  // null demonstrates the honest empty-state card for a day with no verified
+  // Malaysia event (which is the common case).
+  malaysia: null,
 };
 
 const dateLabel = DateTime.now().setZone("Asia/Kuala_Lumpur").toFormat("LLLL d, yyyy");

@@ -21,8 +21,10 @@ export interface HistorySection {
 
 export interface HistoryData {
   global: HistorySection;
-  southeastAsia: HistorySection;
-  malaysia: HistorySection;
+  // Null when the day's verified event list contains no genuine regional event.
+  // We never fabricate one to fill the slot.
+  southeastAsia: HistorySection | null;
+  malaysia: HistorySection | null;
 }
 
 /** Which AI provider produced the digest (surfaced in the email footer). */

@@ -96,6 +96,21 @@ function columnCard(label: string, section: HistorySection): string {
   </td>`;
 }
 
+/** Honest placeholder when the day's verified list has no event for a region. */
+function emptyColumnCard(label: string): string {
+  return `
+  <td style="width:50%;vertical-align:top;padding:20px;background:${C.white};border:1px solid ${C.border};border-radius:6px;" valign="top">
+    <div style="font-family:${MONO};font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${C.grey};">${esc(label)}</div>
+    <div style="height:3px;width:36px;background:${C.red};margin:8px 0 12px;"></div>
+    <p style="font-family:${SERIF};font-style:italic;font-size:14px;line-height:1.6;color:${C.grey};margin:0;">No major event for this region is recorded on this day in our verified sources.</p>
+  </td>`;
+}
+
+/** Renders a region column, or an honest placeholder if the section is null. */
+function regionColumn(label: string, section: HistorySection | null): string {
+  return section ? columnCard(label, section) : emptyColumnCard(label);
+}
+
 /** Renders one event's reference list as <li> items (with links where present). */
 function referenceItems(refs: Reference[] | undefined): string {
   if (!refs?.length) return "";
@@ -113,7 +128,7 @@ function referenceItems(refs: Reference[] | undefined): string {
 
 /** Consolidated "References" block grouped by event, shown above the footer. */
 function referencesSection(data: HistoryData): string {
-  const groups: Array<[string, HistorySection]> = [
+  const groups: Array<[string, HistorySection | null]> = [
     ["Global Headline", data.global],
     ["Southeast Asia", data.southeastAsia],
     ["Tanah Melayu / Malaysia", data.malaysia],
@@ -121,6 +136,7 @@ function referencesSection(data: HistoryData): string {
 
   const blocks = groups
     .map(([label, section]) => {
+      if (!section) return "";
       const items = referenceItems(section.references);
       if (!items) return "";
       return `
@@ -190,9 +206,9 @@ export function buildEmailHtml(
             <td style="padding:12px 22px 24px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  ${columnCard("Southeast Asia", data.southeastAsia)}
+                  ${regionColumn("Southeast Asia", data.southeastAsia)}
                   <td style="width:14px;font-size:0;line-height:0;">&nbsp;</td>
-                  ${columnCard("Tanah Melayu / Malaysia", data.malaysia)}
+                  ${regionColumn("Tanah Melayu / Malaysia", data.malaysia)}
                 </tr>
               </table>
             </td>
