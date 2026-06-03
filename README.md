@@ -16,7 +16,7 @@ Each digest contains three sections:
 | Concern        | Choice                                              |
 | -------------- | --------------------------------------------------- |
 | Runtime        | Node.js 20+ + TypeScript                            |
-| Scheduler      | GitHub Actions (`cron: '30 23 * * *'` UTC)          |
+| Scheduler      | GitHub Actions (`cron: '30 20 * * *'` UTC, fires early to compensate for runner lag) |
 | AI (primary)   | Groq (`llama-3.3-70b-versatile`, free tier)         |
 | AI (fallback)  | Google Gemini (`gemini-2.0-flash`, free tier)       |
 | Event grounding| Wikimedia "On This Day" feed (verified dated events)|
@@ -111,8 +111,10 @@ npm run preview        # writes preview.html — open it in a browser
 4. To test now: **Actions → Daily History Email → Run workflow**.
 
 > **Timezone note:** GitHub Actions cron is in UTC. MYT is UTC+8, so 7:30 AM MYT
-> equals 23:30 UTC the previous day — hence `'30 23 * * *'`. GitHub's scheduler
-> can lag by a few minutes under load, which is normal.
+> equals 23:30 UTC the previous day in theory — but free-tier GitHub Actions
+> runners experience 2–3 hours of queue lag during peak hours. The cron is set to
+> `'30 20 * * *'` UTC (04:30 MYT) to compensate, targeting email delivery by
+> ~07:30 MYT. If delivery time drifts, adjust the cron offset accordingly.
 
 ## Customization
 

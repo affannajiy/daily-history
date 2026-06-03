@@ -2,8 +2,9 @@ name: Daily History Email
 
 on:
   schedule:
-    # 23:30 UTC = 07:30 AM MYT (UTC+8) the next morning.
-    - cron: '30 23 * * *'
+    # 20:30 UTC = 04:30 MYT. Fires 3h early to compensate for GitHub free-tier
+    # runner queue lag (~2-3h), targeting delivery by ~07:30 MYT.
+    - cron: '30 20 * * *'
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:

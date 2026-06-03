@@ -66,8 +66,11 @@ architecture makes wrong dates structurally impossible:
   Most days have no verified Malaysia event — `null` is the common, correct case,
   not an error. Any new consumer of `HistoryData` must handle null.
 - **Timezone is pinned to `Asia/Kuala_Lumpur`** via luxon. "Today" is always
-  computed in MYT regardless of where the code runs. The CI cron is `'30 23 * * *'`
-  UTC because MYT is UTC+8 (so it fires the previous UTC day).
+  computed in MYT regardless of where the code runs. The CI cron is `'30 20 * * *'`
+  UTC (04:30 MYT) — fired 3h early to compensate for GitHub free-tier runner
+  queue lag (~2-3h), targeting delivery by ~07:30 MYT. Since 04:30 MYT is the
+  same calendar day as 07:30 MYT, the earlier fire does not change which day's
+  events are emailed.
 - **No verified events → hard failure.** `generateHistory` throws rather than
   emit unsourced content. This is intentional.
 - **Gemini's free tier is region-dependent** and may return `limit: 0` (not a
