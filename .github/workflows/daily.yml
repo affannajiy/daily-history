@@ -7,6 +7,10 @@ on:
     - cron: '30 20 * * *'
   workflow_dispatch: # Allow manual trigger for testing
 
+# The job commits the archive page and the sent-event log back to the repo.
+permissions:
+  contents: write
+
 jobs:
   send-email:
     runs-on: ubuntu-latest
@@ -18,6 +22,13 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
+
+      # Offline and deterministic. Subject-page selection fails silently — a
+      # wrong-subject card still renders perfectly — so this runs before any
+      # mail goes out.
+      - name: Check subject-page ranking
+        run: npm run test:ranking
+
       - run: npm start
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -26,3 +37,15 @@ jobs:
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
           # Optional: set a verified sender, e.g. "History Today <news@yourdomain.com>"
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+
+      # Runs even if the send failed, so a digest that was generated and
+      # archived is still readable at its URL. `npm start` only writes the sent
+      # log after a successful send, so nothing is wrongly marked as used.
+      - name: Commit archive and sent log
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs data
+          git diff --staged --quiet || git commit -m "Archive digest for $(TZ=Asia/Kuala_Lumpur date +%F)"
+          git push

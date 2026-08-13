@@ -1,0 +1,761 @@
+[
+  {
+    "day": "08-13",
+    "event": {
+      "year": 2015,
+      "text": "At least 76 people are killed and 212 others are wounded in a truck bombing in Baghdad, Iraq.",
+      "pages": [
+        "2015 Sadr City market truck bombing",
+        "Baghdad"
+      ]
+    },
+    "expected": [
+      "2015 Sadr City market truck bombing"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 2014,
+      "text": "A Cessna Citation Excel crashes in Santos, São Paulo, Brazil killing all seven people aboard, including Brazilian Socialist Party presidential candidate Eduardo Campos.",
+      "pages": [
+        "Cessna Citation Excel",
+        "2014 Santos Cessna Citation crash",
+        "Santos, São Paulo",
+        "Brazilian Socialist Party",
+        "Eduardo Campos"
+      ]
+    },
+    "expected": [
+      "2014 Santos Cessna Citation crash"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 2008,
+      "text": "Russo-Georgian War: Russian units occupy the Georgian city of Gori.",
+      "pages": [
+        "Russo-Georgian War",
+        "Occupation of Gori",
+        "Gori, Georgia"
+      ]
+    },
+    "expected": [
+      "Occupation of Gori"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 2004,
+      "text": "One hundred fifty-six Congolese Tutsi refugees are massacred at the Gatumba refugee camp in Burundi.",
+      "pages": [
+        "Democratic Republic of the Congo",
+        "Tutsi",
+        "Gatumba",
+        "Refugee camp",
+        "Burundi"
+      ]
+    },
+    "expected": [],
+    "note": "no correct article is linked by this entry"
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1990,
+      "text": "A mainland Chinese fishing boat Min Ping Yu No. 5202 is hit by a Taiwanese naval vessel and sinks in a repatriation operation of mainland Chinese immigrants, resulting in 21 deaths. This is the second tragedy less than a month after Min Ping Yu No. 5540 incident.",
+      "pages": [
+        "Min Ping Yu No. 5202",
+        "Min Ping Yu No. 5540 incident"
+      ]
+    },
+    "expected": [
+      "Min Ping Yu No. 5202"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1978,
+      "text": "One hundred fifty Palestinians in Beirut are killed in a terrorist attack during the second phase of the Lebanese Civil War.",
+      "pages": [
+        "Palestinians",
+        "Beirut",
+        "Tel al-Zaatar massacre",
+        "List of terrorist incidents",
+        "Lebanese Civil War"
+      ]
+    },
+    "expected": [
+      "Tel al-Zaatar massacre"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1977,
+      "text": "Members of the British National Front (NF) clash with anti-NF demonstrators in Lewisham, London, resulting in 214 arrests and at least 111 injuries.",
+      "pages": [
+        "National Front (UK)",
+        "Battle of Lewisham",
+        "Lewisham"
+      ]
+    },
+    "expected": [
+      "Battle of Lewisham"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1973,
+      "text": "Aviaco Flight 118 crashes on approach to A Coruña Airport in A Coruña, Spain, killing all 85 people on the plane and one other one the ground.",
+      "pages": [
+        "Aviaco Flight 118",
+        "A Coruña Airport",
+        "A Coruña"
+      ]
+    },
+    "expected": [
+      "Aviaco Flight 118"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1969,
+      "text": "The Apollo 11 astronauts enjoy a ticker-tape parade in New York City. That evening, at a state dinner in Los Angeles, they are awarded the Presidential Medal of Freedom by U.S. President Richard Nixon.",
+      "pages": [
+        "Apollo 11",
+        "Ticker-tape parade",
+        "State banquet",
+        "Los Angeles",
+        "Presidential Medal of Freedom",
+        "Richard Nixon"
+      ]
+    },
+    "expected": [
+      "Apollo 11"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1968,
+      "text": "Alexandros Panagoulis attempts to assassinate the Greek dictator Colonel Georgios Papadopoulos in Varkiza, Athens.",
+      "pages": [
+        "Alexandros Panagoulis",
+        "Greek junta",
+        "Georgios Papadopoulos",
+        "Varkiza",
+        "Athens"
+      ]
+    },
+    "expected": [
+      "Alexandros Panagoulis"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1967,
+      "text": "Two young women became the first fatal victims of grizzly bear attacks in the 57-year history of Montana's Glacier National Park in separate incidents.",
+      "pages": [
+        "Night of the Grizzlies",
+        "Glacier National Park (U.S.)"
+      ]
+    },
+    "expected": [
+      "Night of the Grizzlies"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1964,
+      "text": "Peter Allen and Gwynne Evans are hanged for the murder of John Alan West becoming the last people executed in the United Kingdom.",
+      "pages": [
+        "Murder of John Alan West",
+        "Capital punishment in the United Kingdom"
+      ]
+    },
+    "expected": [
+      "Murder of John Alan West"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1961,
+      "text": "Cold War: East Germany closes the border between the eastern and western sectors of Berlin to thwart its inhabitants' attempts to escape to the West, and construction of the Berlin Wall is started. The day is known as Barbed Wire Sunday.",
+      "pages": [
+        "Cold War",
+        "East Germany",
+        "East Berlin",
+        "West Berlin",
+        "Berlin",
+        "Western world",
+        "Berlin Wall",
+        "Barbed Wire Sunday"
+      ]
+    },
+    "expected": [
+      "Berlin Wall",
+      "Barbed Wire Sunday"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1944,
+      "text": "World War II: German troops begin the pillage and razing of Anogeia in Crete that would continue until September 5.",
+      "pages": [
+        "Razing of Anogeia",
+        "Crete",
+        "September 5"
+      ]
+    },
+    "expected": [
+      "Razing of Anogeia"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1942,
+      "text": "Major General Eugene Reybold of the U.S. Army Corps of Engineers authorizes the construction of facilities that would house the \"Development of Substitute Materials\" project, better known as the Manhattan Project.",
+      "pages": [
+        "Eugene Reybold",
+        "United States Army Corps of Engineers",
+        "Manhattan Project"
+      ]
+    },
+    "expected": [
+      "Manhattan Project"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1940,
+      "text": "World War II: The German Luftwaffe launches an air operation, codenamed Adlertag, during the Battle of Britain in an attempt to destroy the British Royal Air Force.",
+      "pages": [
+        "World War II",
+        "Luftwaffe",
+        "Adlertag",
+        "Battle of Britain",
+        "Royal Air Force"
+      ]
+    },
+    "expected": [
+      "Adlertag"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1937,
+      "text": "Second Sino-Japanese War: The Battle of Shanghai begins.",
+      "pages": [
+        "Second Sino-Japanese War",
+        "Battle of Shanghai"
+      ]
+    },
+    "expected": [
+      "Battle of Shanghai"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1920,
+      "text": "Polish–Soviet War: The Battle of Warsaw begins and will last till August 25. The Red Army is defeated.",
+      "pages": [
+        "Polish–Soviet War",
+        "Battle of Warsaw (1920)",
+        "August 25",
+        "Red Army"
+      ]
+    },
+    "expected": [
+      "Battle of Warsaw (1920)"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1906,
+      "text": "The all black infantrymen of the U.S. Army's 25th Infantry Regiment are accused of killing a white bartender and wounding a white police officer in Brownsville, Texas, despite exculpatory evidence; all are later dishonorably discharged. (Their records were later restored to reflect honorable discharges but there were no financial settlements.)",
+      "pages": [
+        "25th Infantry Regiment (United States)",
+        "Brownsville affair",
+        "Brownsville, Texas"
+      ]
+    },
+    "expected": [
+      "Brownsville affair"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1898,
+      "text": "Spanish–American War: Spanish and American forces engage in a mock battle for Manila, after which the Spanish commander surrendered in order to keep the city out of Filipino rebel hands.",
+      "pages": [
+        "Spanish–American War",
+        "Battle of Manila (1898)",
+        "Manila"
+      ]
+    },
+    "expected": [
+      "Battle of Manila (1898)"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1898,
+      "text": "Carl Gustav Witt discovers 433 Eros, the first near-Earth asteroid to be found.",
+      "pages": [
+        "Carl Gustav Witt",
+        "433 Eros",
+        "Near-Earth object"
+      ]
+    },
+    "expected": [
+      "433 Eros"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1868,
+      "text": "The 8.5–9.0 Mw Arica earthquake strikes southern Peru with a maximum Mercalli intensity of XI (Extreme), causing 25,000+ deaths and a destructive basin-wide tsunami that affected Hawaii and New Zealand.",
+      "pages": [
+        "1868 Arica earthquake",
+        "Peru",
+        "Modified Mercalli intensity scale",
+        "Tsunami"
+      ]
+    },
+    "expected": [
+      "1868 Arica earthquake"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1806,
+      "text": "Battle of Mišar during the Serbian Revolution begins. The battle ends two days later with a Serbian victory over the Ottomans.",
+      "pages": [
+        "Battle of Mišar",
+        "Serbian Revolution"
+      ]
+    },
+    "expected": [
+      "Battle of Mišar"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1779,
+      "text": "American Revolutionary War: The Royal Navy defeats the Penobscot Expedition with the most significant loss of United States naval forces prior to the attack on Pearl Harbor.",
+      "pages": [
+        "American Revolutionary War",
+        "Royal Navy",
+        "Penobscot Expedition",
+        "Attack on Pearl Harbor"
+      ]
+    },
+    "expected": [
+      "Penobscot Expedition"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1704,
+      "text": "War of the Spanish Succession: Battle of Blenheim: English and Imperial forces are victorious over French and Bavarian troops.",
+      "pages": [
+        "War of the Spanish Succession",
+        "Battle of Blenheim",
+        "Kingdom of England",
+        "Holy Roman Empire",
+        "Kingdom of France",
+        "Electorate of Bavaria"
+      ]
+    },
+    "expected": [
+      "Battle of Blenheim"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1521,
+      "text": "After an extended siege, forces led by Spanish conquistador Hernán Cortés capture Tlatoani Cuauhtémoc and conquer the Aztec capital of Tenochtitlan.",
+      "pages": [
+        "Fall of Tenochtitlan",
+        "Conquistador",
+        "Hernán Cortés",
+        "Tlatoani",
+        "Cuauhtémoc",
+        "Aztecs",
+        "Tenochtitlan"
+      ]
+    },
+    "expected": [
+      "Fall of Tenochtitlan"
+    ]
+  },
+  {
+    "day": "08-13",
+    "event": {
+      "year": 1532,
+      "text": "Union of Brittany and France: The Duchy of Brittany is absorbed into the Kingdom of France.",
+      "pages": [
+        "Union of the Duchy of Brittany with the Crown of France",
+        "Duchy of Brittany",
+        "Kingdom of France"
+      ]
+    },
+    "expected": [
+      "Union of the Duchy of Brittany with the Crown of France"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 2023,
+      "text": "Two children are killed and six others are injured when a bus crashes into a daycare centre in Laval, Quebec, Canada. The driver is arrested and charged with homicide and dangerous driving.",
+      "pages": [
+        "Laval daycare bus crash",
+        "Laval, Quebec",
+        "Criminal charge",
+        "Homicide",
+        "Dangerous driving"
+      ]
+    },
+    "expected": [
+      "Laval daycare bus crash"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 2020,
+      "text": "A soldier opens fire in a military camp and a shopping center in Nakhon Ratchasima, Thailand, killing 29 people and injuring 58 others before being shot dead by police the next day. It is considered the deadliest mass shooting in the country's history.",
+      "pages": [
+        "Nakhon Ratchasima shootings",
+        "Military camp",
+        "Nakhon Ratchasima",
+        "Royal Thai Police"
+      ]
+    },
+    "expected": [
+      "Nakhon Ratchasima shootings"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1993,
+      "text": "An Iran Air Tours Tupolev Tu-154 and an Iranian Air Force Sukhoi Su-24 collide mid-air near Qods, Iran, killing all 133 people on board both aircraft.",
+      "pages": [
+        "Iran Airtour",
+        "Tupolev Tu-154",
+        "Islamic Republic of Iran Air Force",
+        "Sukhoi Su-24",
+        "1993 Tehran mid-air collision",
+        "Qods, Iran"
+      ]
+    },
+    "expected": [
+      "1993 Tehran mid-air collision"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1989,
+      "text": "Independent Air Flight 1851 strikes Pico Alto mountain while on approach to Santa Maria Airport in the Azores, killing all 144 passengers on board.",
+      "pages": [
+        "Independent Air Flight 1851",
+        "Pico Alto (Santa Maria)",
+        "Santa Maria Airport (Azores)",
+        "Azores"
+      ]
+    },
+    "expected": [
+      "Independent Air Flight 1851"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1986,
+      "text": "Twenty-three people are killed when a VIA Rail passenger train collides with a Canadian National freight train near the town of Hinton, Alberta, making it one of the worst rail accidents in Canada.",
+      "pages": [
+        "Via Rail",
+        "Hinton train collision",
+        "Canadian National Railway",
+        "Hinton, Alberta"
+      ]
+    },
+    "expected": [
+      "Hinton train collision"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1974,
+      "text": "The crew of Skylab 4, the last mission to visit the American space station Skylab, returns to Earth after 84 days in space.",
+      "pages": [
+        "Skylab 4",
+        "Space station",
+        "Skylab",
+        "Outer space"
+      ]
+    },
+    "expected": [
+      "Skylab 4"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1971,
+      "text": "South Vietnamese ground troops launch an incursion into Laos to try to cut off the Ho Chi Minh trail and stop communist infiltration into the country.",
+      "pages": [
+        "Army of the Republic of Vietnam",
+        "Operation Lam Son 719",
+        "Laos",
+        "Ho Chi Minh trail",
+        "People's Army of Vietnam"
+      ]
+    },
+    "expected": [
+      "Operation Lam Son 719"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1968,
+      "text": "American civil rights movement: An attack on Black students from South Carolina State University who are protesting racial segregation leaves three dead and 28 injured in Orangeburg, South Carolina.",
+      "pages": [
+        "Civil rights movement",
+        "Orangeburg Massacre",
+        "South Carolina State University",
+        "Racial segregation",
+        "Orangeburg, South Carolina"
+      ]
+    },
+    "expected": [
+      "Orangeburg Massacre"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1963,
+      "text": "The regime of Prime Minister of Iraq Abd al-Karim Qasim is overthrown by the Ba'ath Party.",
+      "pages": [
+        "Prime Minister of Iraq",
+        "Abdul-Karim Qasim",
+        "Ramadan Revolution",
+        "Ba'ath Party"
+      ]
+    },
+    "expected": [
+      "Ramadan Revolution"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1962,
+      "text": "Nine protestors are killed at Charonne station, Paris, by French police under the command of ex-Vichy official and Parisian Prefect of Police Maurice Papon.",
+      "pages": [
+        "Charonne subway massacre",
+        "Charonne station",
+        "Law enforcement in France",
+        "Vichy France",
+        "Paris Police Prefecture",
+        "Maurice Papon"
+      ]
+    },
+    "expected": [
+      "Charonne subway massacre"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1942,
+      "text": "World War II: Japan invades Singapore.",
+      "pages": [
+        "World War II",
+        "Fall of Singapore"
+      ]
+    },
+    "expected": [
+      "Fall of Singapore"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1904,
+      "text": "Japanese forces launch a surprise attack against Russian-controlled Port Arthur, marking the start of the Russo-Japanese war.",
+      "pages": [
+        "Empire of Japan",
+        "Battle of Port Arthur",
+        "Russian Empire",
+        "Lüshunkou",
+        "Russo-Japanese War"
+      ]
+    },
+    "expected": [
+      "Battle of Port Arthur"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1904,
+      "text": "The Dutch Colonial Army's Marechaussee regiment led by General G.C.E. van Daalen launch a military campaign in the Dutch East Indies' Northern Sumatra region, leading to the deaths of thousands of civilians.",
+      "pages": [
+        "Royal Netherlands East Indies Army",
+        "Korps Marechaussee te voet",
+        "General officer",
+        "Gotfried Coenraad Ernst van Daalen",
+        "Aceh War",
+        "Dutch East Indies",
+        "North Sumatra"
+      ]
+    },
+    "expected": [
+      "Aceh War"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1945,
+      "text": "World War II: British and Canadian forces commence Operation Veritable to occupy land between the Maas and Rhine rivers.",
+      "pages": [
+        "British Armed Forces",
+        "Canadian Armed Forces",
+        "Operation Veritable",
+        "Rhineland",
+        "Meuse",
+        "Rhine"
+      ]
+    },
+    "expected": [
+      "Operation Veritable"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1945,
+      "text": "World War II: Mikhail Devyataev escapes with nine other Soviet POWs from a Nazi concentration camp in Peenemünde, Usedom.",
+      "pages": [
+        "Mikhail Devyataev",
+        "German atrocities committed against Soviet prisoners of war",
+        "Nazi concentration camps",
+        "Peenemünde",
+        "Usedom"
+      ]
+    },
+    "expected": [
+      "Mikhail Devyataev"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1887,
+      "text": "The Dawes Act is enacted, authorizing the U.S. President to divide Native American tribal land into individual allotments.",
+      "pages": [
+        "Dawes Act",
+        "President of the United States",
+        "Native Americans in the United States",
+        "List of Indian reservations in the United States"
+      ]
+    },
+    "expected": [
+      "Dawes Act"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1879,
+      "text": "England's cricket team, led by Lord Harris, is attacked in a riot during a match in Sydney.",
+      "pages": [
+        "England cricket team",
+        "George Harris, 4th Baron Harris",
+        "Sydney Riot of 1879",
+        "Sydney"
+      ]
+    },
+    "expected": [
+      "Sydney Riot of 1879"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1807,
+      "text": "Napoleon defeats the coalition forces of Russian General Bennigsen and Prussian General L'Estocq at the Battle of Eylau.",
+      "pages": [
+        "Napoleon",
+        "War of the Fourth Coalition",
+        "Russian Empire",
+        "Levin August von Bennigsen",
+        "Prussia",
+        "Anton Wilhelm von L'Estocq",
+        "Battle of Eylau"
+      ]
+    },
+    "expected": [
+      "Battle of Eylau"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1601,
+      "text": "Robert Devereux, 2nd Earl of Essex, unsuccessfully rebels against Queen Elizabeth I.",
+      "pages": [
+        "Robert Devereux, 2nd Earl of Essex",
+        "Essex's Rebellion",
+        "Elizabeth I"
+      ]
+    },
+    "expected": [
+      "Essex's Rebellion"
+    ]
+  },
+  {
+    "day": "02-08",
+    "event": {
+      "year": 1950,
+      "text": "The Stasi, the secret police of East Germany, is established.",
+      "pages": [
+        "Stasi",
+        "East Germany"
+      ]
+    },
+    "expected": [
+      "Stasi"
+    ]
+  }
+]

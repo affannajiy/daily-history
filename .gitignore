@@ -2,4 +2,10 @@ node_modules/
 dist/
 .env
 *.log
+
+# Local previews. `docs/` is deliberately NOT ignored — it is the published
+# archive and the workflow commits it.
 preview.html
+preview.txt
+preview-live.html
+preview-live.txt

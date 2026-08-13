@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    // Node16 rather than the deprecated node10 resolution. package.json has
+    // "type": "commonjs", so this still emits CommonJS — only resolution changes.
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
+    // Explicit so editors resolve `process`, `Buffer` and friends the same way
+    // the compiler does, instead of relying on automatic @types discovery.
+    "types": ["node"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,

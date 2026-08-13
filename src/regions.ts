@@ -19,6 +19,19 @@ function matches(re: RegExp, e: OnThisDayEvent): boolean {
   return re.test(e.text) || e.pages.some((p) => re.test(p));
 }
 
+/**
+ * Exported so the figure fallback can filter the day's births and deaths feed
+ * through exactly the same rules the event lists use — a region means the same
+ * thing whichever feed the entry came from.
+ */
+export function matchesMalaysia(e: OnThisDayEvent): boolean {
+  return matches(MALAYSIA, e);
+}
+
+export function matchesSoutheastAsia(e: OnThisDayEvent): boolean {
+  return matches(SEA, e) && !matches(MALAYSIA, e);
+}
+
 export interface RegionalCandidates {
   /** SEA events that are NOT Malaysia-specific (so the two lists never overlap). */
   southeastAsia: OnThisDayEvent[];
@@ -26,9 +39,7 @@ export interface RegionalCandidates {
 }
 
 export function classifyRegions(events: OnThisDayEvent[]): RegionalCandidates {
-  const malaysia = events.filter((e) => matches(MALAYSIA, e));
-  const southeastAsia = events.filter(
-    (e) => matches(SEA, e) && !matches(MALAYSIA, e)
-  );
+  const malaysia = events.filter(matchesMalaysia);
+  const southeastAsia = events.filter(matchesSoutheastAsia);
   return { southeastAsia, malaysia };
 }
