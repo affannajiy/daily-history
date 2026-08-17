@@ -3,8 +3,13 @@ dist/
 .env
 *.log
 
-# Local previews. `docs/` is deliberately NOT ignored — it is the published
-# archive and the workflow commits it.
+# Generated state. Both live on the orphan `gh-pages` branch, never on `main`,
+# so a clone stays small and the bot's daily commit cannot collide with local
+# work. A local `npm run dev` writes them here; they are throwaway.
+docs/
+data/
+
+# Local previews.
 preview.html
 preview.txt
 preview-live.html

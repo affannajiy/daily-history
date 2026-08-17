@@ -62,12 +62,16 @@ Names must match exactly; `.github/workflows/daily.yml` maps them one-to-one.
 
 ### 1.4 Turn on GitHub Pages — do not skip this
 
-The job writes every edition to `docs/` and the email links to it ("View in
-browser", and the footer). Until Pages is switched on, **every one of those links
-404s**.
+The job writes every edition to the orphan **`gh-pages`** branch and the email
+links to it ("View in browser", and the footer). Until Pages is switched on,
+**every one of those links 404s**.
 
-**Settings → Pages → Source: "Deploy from a branch" → branch `main`, folder
-`/docs` → Save.**
+**Settings → Pages → Source: "Deploy from a branch" → branch `gh-pages`, folder
+`/ (root)` → Save.**
+
+The archive is on its own branch, not in `main`, so cloning the source never
+drags down a year of generated HTML and the bot's daily commit can never collide
+with your local work. `main` holds code; `gh-pages` holds output.
 
 The public URL is hardcoded in `src/archive.ts` as `ARCHIVE_BASE_URL`:
 
@@ -85,8 +89,9 @@ cron. It proves the secrets, the build, the send path and the commit-back all
 work, independently of whether GitHub decides to run your schedule.
 
 The workflow needs `permissions: contents: write` (already set) because it
-commits `docs/` and `data/sent.json` back to `main` after each run. If you add
-branch protection to `main`, the bot must be allowed to push or this step fails.
+commits the edition and `data/sent.json` to `gh-pages` after each run. If you add
+branch protection to `gh-pages`, the bot must be allowed to push or this step
+fails.
 
 ---
 
@@ -182,18 +187,34 @@ In order:
 5. **Spam folder**, especially while sending from `onboarding@resend.dev`. A
    shared sender address has whatever reputation everyone else gave it.
 
-**Fast triage:** check whether `docs/YYYY-MM-DD.html` was committed for today.
-If it exists, generation worked and the problem is in the send. If it doesn't,
-the run failed before that — read the job log.
+**Fast triage:** check whether `YYYY-MM-DD.html` was committed to `gh-pages` for
+today. If it exists, generation worked and the problem is in the send. If it
+doesn't, the run failed before that — read the job log.
 
 ## 4a. The archive and the sent log
 
-Two paths in the repo are written by the job, not by you:
+Everything the job writes lives on the orphan **`gh-pages`** branch, never on
+`main`:
 
-| Path | What it is |
+| Path on `gh-pages` | What it is |
 | --- | --- |
-| `docs/` | Every edition as HTML, plus `index.html` and `index.json` |
+| `YYYY-MM-DD.html` | One edition, the same HTML the email carried |
+| `index.html`, `index.json` | The archive listing |
 | `data/sent.json` | Feed-entry keys already featured, so they are not repeated |
+
+The workflow checks that branch out into `site/` beside the source and points
+the job at it with two environment variables, `ARCHIVE_DIR` and
+`SENT_LOG_PATH`. Locally those are unset, so `npm run dev` writes to `docs/` and
+`data/` in your working copy — both gitignored, both throwaway. A local run
+therefore sees an **empty sent log** and may pick an event the real job already
+used; that only affects what a dry run shows you, never what is published.
+
+To read an old edition without cloning it, use the published site. To get the
+files anyway:
+
+```bash
+git fetch origin gh-pages && git switch gh-pages
+```
 
 **Why the sent log exists:** the pipeline is deterministic — same calendar day,
 same feed, `temperature: 0` — so without it, 13 August 2027 would send very
@@ -204,7 +225,7 @@ Exclusion is soft. If withholding every seen event would leave a slot empty, the
 slot gets a repeat rather than nothing. Some days genuinely have one Malaysian
 event and no other.
 
-To **reset** the variety history, delete `data/sent.json`. To **rewrite** a bad
+To **reset** the variety history, delete `data/sent.json` on `gh-pages`. To **rewrite** a bad
 edition, re-run the workflow for that date; the archive entry is overwritten
 rather than duplicated.
 
@@ -272,9 +293,9 @@ A **VMC** certificate is optional — it buys the blue checkmark, not the logo.
 - **Cost.** Groq, Gemini and Resend free tiers cover one email a day with room to
   spare. `dryrun` consumes model quota; `preview` and the offline ranking test
   don't.
-- **Repo growth.** `docs/` gains one HTML file (~20–25 KB) per day, so roughly
-  8 MB a year. Fine for a long time; if it ever matters, delete old editions —
-  nothing depends on them existing.
-- **The `.env` file is gitignored.** So are `preview.html`, `preview.txt`,
-  `preview-live.html` and `preview-live.txt`. `docs/` and `data/` are
-  deliberately **not** ignored — the workflow commits them.
+- **Repo growth.** `gh-pages` gains one HTML file (~20–25 KB) per day, so roughly
+  8 MB a year — all of it on a branch nobody checks out. `main` does not grow.
+  If it ever matters, delete old editions; nothing depends on them existing.
+- **The `.env` file is gitignored.** So are `preview.*`, `preview-live.*`, and
+  `docs/` and `data/` — those last two are local scratch output on `main`; the
+  published copies live on `gh-pages`.

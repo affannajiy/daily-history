@@ -49,7 +49,7 @@ source that gave it one sentence. See **How the writing is grounded** below.
 | Detail sourcing| Wikipedia (EN + `ms`/`id`) article text + Wikidata claims |
 | Images         | Wikimedia Commons, free licences only               |
 | Email delivery | Resend (`multipart/alternative` — HTML + plain text)|
-| Archive        | GitHub Pages, served from `docs/`                   |
+| Archive        | GitHub Pages, served from the `gh-pages` branch     |
 | Timezone       | `luxon`, pinned to `Asia/Kuala_Lumpur`              |
 
 If Groq fails for any reason (quota, network, malformed output), the program
@@ -116,7 +116,8 @@ The floors are a ratchet, and CI runs the offline check before any mail goes out
 
 The pipeline is deterministic, so without intervention the same calendar day
 would produce the same email every year. Featured entries are recorded in
-`data/sent.json` and withheld from future selection — softly, so a region with
+`data/sent.json` on the `gh-pages` branch and withheld from future selection —
+softly, so a region with
 exactly one recorded event never loses it permanently.
 
 ### When a region has no event
@@ -145,15 +146,13 @@ daily-history/
 │   ├── buildEmail.ts     # HTML part (red/black/white/grey)
 │   ├── buildText.ts      # Plain-text part
 │   ├── subject.ts        # Subject line and inbox preheader
-│   ├── archive.ts        # Writes docs/ for GitHub Pages
+│   ├── archive.ts        # Writes the archive pages for GitHub Pages
 │   ├── sendEmail.ts      # Resend delivery
 │   ├── preview.ts        # Renders preview.html/.txt with sample data
 │   ├── dryrun.ts         # Real data + real AI, writes preview-live.*
 │   ├── rankTest.ts       # Subject-page regression test
 │   └── types.ts          # Shared types
 ├── test/fixtures/        # 47 real feed entries with hand-checked answers
-├── docs/                 # Published archive (written by the workflow)
-├── data/sent.json        # Featured-entry log (written by the workflow)
 ├── .claude/skills/       # Task-scoped guidance for Claude Code
 ├── .github/workflows/daily.yml
 ├── .env.example
@@ -227,9 +226,14 @@ little API quota; `npm run dev` is the only command that actually sends mail.
    - `RESEND_API_KEY`
    - `RECIPIENT_EMAIL`
    - `FROM_EMAIL` *(optional — only if you verified a domain in Resend)*
-3. **Settings → Pages → Deploy from a branch → `main` / `/docs`.** Without this
-   the archive links in every email 404. If you forked or renamed the repo, also
-   update `ARCHIVE_BASE_URL` in `src/archive.ts`.
+3. **Settings → Pages → Deploy from a branch → `gh-pages` / `/ (root)`.** Without
+   this the archive links in every email 404. If you forked or renamed the repo,
+   also update `ARCHIVE_BASE_URL` in `src/archive.ts`.
+
+   The published editions and the sent-event log live on that orphan `gh-pages`
+   branch, not on `main` — so cloning the source never pulls down a growing pile
+   of generated HTML, and the daily bot commit never lands on the branch you
+   work in.
 4. The workflow runs automatically at 7:30 AM MYT every day.
 5. To test now: **Actions → Daily History Email → Run workflow**.
 

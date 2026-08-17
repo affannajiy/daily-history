@@ -16,7 +16,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { OnThisDayEvent } from "./fetchOnThisDay";
 
-export const SENT_LOG_PATH = "data/sent.json";
+/**
+ * Lives on the `gh-pages` branch alongside the archive, so the daily run has
+ * exactly one branch to push to and `main` stays untouched by the bot. See
+ * `ARCHIVE_DIR` in `archive.ts` — the workflow overrides both together.
+ */
+export const SENT_LOG_PATH = process.env.SENT_LOG_PATH || "data/sent.json";
 
 export interface SentEntry {
   /** ISO date the digest was sent, in MYT. */

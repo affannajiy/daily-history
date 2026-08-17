@@ -7,7 +7,7 @@ on:
     - cron: '30 20 * * *'
   workflow_dispatch: # Allow manual trigger for testing
 
-# The job commits the archive page and the sent-event log back to the repo.
+# The job commits the archive page and the sent-event log to `gh-pages`.
 permissions:
   contents: write
 
@@ -16,6 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      # The published archive and the sent log live on an orphan `gh-pages`
+      # branch, checked out beside the source rather than inside it. Keeping
+      # them off `main` means a clone of this repo never carries a year of
+      # generated HTML, and the bot's daily commit never collides with local
+      # work. `fetch-depth: 0` is not needed — only the tip is ever appended to.
+      - name: Check out the archive branch
+        uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+          path: site
+
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -31,6 +43,11 @@ jobs:
 
       - run: npm start
         env:
+          # Write the edition and the sent log into the gh-pages checkout, not
+          # into the source tree. Both must move together: the archive index and
+          # the sent log are the two pieces of state a run carries forward.
+          ARCHIVE_DIR: site
+          SENT_LOG_PATH: site/data/sent.json
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -43,9 +60,10 @@ jobs:
       # log after a successful send, so nothing is wrongly marked as used.
       - name: Commit archive and sent log
         if: always()
+        working-directory: site
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs data
+          git add -A
           git diff --staged --quiet || git commit -m "Archive digest for $(TZ=Asia/Kuala_Lumpur date +%F)"
-          git push
+          git push origin gh-pages

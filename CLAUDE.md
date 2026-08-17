@@ -27,7 +27,7 @@ verified feed, never from a model.
 | `buildEmail.ts` | HTML part |
 | `buildText.ts` | Plain-text part |
 | `subject.ts` | Subject line and preheader |
-| `archive.ts` | `docs/` pages published via GitHub Pages |
+| `archive.ts` | Archive pages, published from the orphan `gh-pages` branch |
 | `sendEmail.ts` | Resend delivery |
 | `rankTest.ts` | Subject-page regression test |
 

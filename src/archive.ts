@@ -15,7 +15,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
-export const ARCHIVE_DIR = "docs";
+/**
+ * Where editions are written. The workflow checks the `gh-pages` branch out
+ * into a sibling directory and points this at it, so the archive never lands on
+ * `main` and a local clone never has to pull a year of HTML it will not read.
+ * Locally it defaults to `docs/`, which is gitignored.
+ */
+export const ARCHIVE_DIR = process.env.ARCHIVE_DIR || "docs";
 /** Set once, in one place: every archive URL is built from this. */
 export const ARCHIVE_BASE_URL = "https://affannajiy.github.io/daily-history";
 

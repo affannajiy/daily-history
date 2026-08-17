@@ -25,16 +25,28 @@ no `--dry-run` flag. There is no safe way to smoke-test them; use `dryrun`.
 
 `npm start` does three things beyond sending, in this order:
 
-1. **Archives** the edition to `docs/YYYY-MM-DD.html` and rebuilds
-   `docs/index.html`. This happens *before* the send so the "view in browser"
-   link is live when the mail lands.
+1. **Archives** the edition to `<ARCHIVE_DIR>/YYYY-MM-DD.html` and rebuilds the
+   index. This happens *before* the send so the "view in browser" link is live
+   when the mail lands.
 2. **Sends.**
-3. **Appends** the featured feed-entry keys to `data/sent.json` — only after a
+3. **Appends** the featured feed-entry keys to `<SENT_LOG_PATH>` — only after a
    successful send, so a failed run does not burn the events it was going to use.
 
-The workflow commits both paths back with `permissions: contents: write`. The
-commit step runs `if: always()`, so a generated-but-unsent digest is still
-readable at its URL.
+Both destinations are **not on `main`**. They live on an orphan `gh-pages`
+branch, which the workflow checks out into `site/` and points the job at via the
+`ARCHIVE_DIR` and `SENT_LOG_PATH` environment variables (defaults `docs/` and
+`data/sent.json`, both gitignored and used only for local scratch).
+
+That separation is deliberate and worth keeping: generated output on `main` means
+every clone drags down a growing pile of HTML nobody reads, and the bot's daily
+commit races whatever you are working on locally. Code on `main`, output on
+`gh-pages`.
+
+The commit step runs `if: always()` and pushes only `gh-pages`, so a
+generated-but-unsent digest is still readable at its URL.
+
+**A local run sees an empty sent log**, since the real one is on the other
+branch. That skews what `dryrun` shows you; it cannot affect what is published.
 
 ## Schedule
 
@@ -79,10 +91,13 @@ it runs via tsx only.
 
 ## GitHub Pages
 
-The archive is served from `docs/` on `main`. This needs enabling once, by hand:
-**Settings → Pages → Source: Deploy from a branch → `main` / `/docs`**. Until
-that is done the workflow still writes and commits the files, and every
-"view in browser" link 404s.
+The archive is served from the root of the `gh-pages` branch. This needs enabling
+once, by hand: **Settings → Pages → Source: Deploy from a branch → `gh-pages` /
+`/ (root)`**. Until that is done the workflow still writes and commits the files,
+and every "view in browser" link 404s.
+
+`gh-pages` is an **orphan** branch — no shared history with `main`, by design.
+Never merge one into the other.
 
 The public base URL is `ARCHIVE_BASE_URL` in `src/archive.ts`. It is hardcoded to
 `https://affannajiy.github.io/daily-history` — **forking or renaming the repo
@@ -101,11 +116,13 @@ Check in this order:
    `limit: 0`, there is no writer left and the run fails.
 4. **Resend** — check the Resend dashboard for a bounce or a suppression before
    assuming the job never reached the send step.
-5. **The archive** — if `docs/YYYY-MM-DD.html` exists for today, generation
-   succeeded and the failure is in the send. That is the fastest way to split
-   the pipeline in half.
+5. **The archive** — if `YYYY-MM-DD.html` exists on `gh-pages` for today,
+   generation succeeded and the failure is in the send. That is the fastest way
+   to split the pipeline in half.
 6. **The commit step** — if it fails, check `permissions: contents: write` is
-   still on the job and that no branch protection blocks the bot.
+   still on the job and that no branch protection blocks the bot. If the
+   *checkout* step fails instead, the `gh-pages` branch is missing on the remote
+   and must be pushed once before the job can run.
 
 ## The sender avatar
 
