@@ -37,14 +37,16 @@ and "a testament to human ingenuity". Two causes, both fixed: the sections had
 overlapping definitions, and the AI was being asked for four paragraphs from a
 source that gave it one sentence. See **How the writing is grounded** below.
 
+Threat model and security posture: [`SECURITY.md`](SECURITY.md).
+
 ## Stack
 
 | Concern        | Choice                                              |
 | -------------- | --------------------------------------------------- |
 | Runtime        | Node.js 22+ + TypeScript                            |
 | Scheduler      | GitHub Actions (`cron: '30 20 * * *'` UTC, fires early to compensate for runner lag) |
-| AI (primary)   | Groq (`llama-3.3-70b-versatile`, free tier)         |
-| AI (fallback)  | Google Gemini (`gemini-2.0-flash`, free tier)       |
+| AI (primary)   | Google Gemini (`gemini-3.6-flash`, free tier)       |
+| AI (fallback)  | Groq (`openai/gpt-oss-120b`, free tier)             |
 | Event grounding| Wikimedia "On This Day" feed (verified dated events)|
 | Detail sourcing| Wikipedia (EN + `ms`/`id`) article text + Wikidata claims |
 | Images         | Wikimedia Commons, free licences only               |
@@ -52,8 +54,10 @@ source that gave it one sentence. See **How the writing is grounded** below.
 | Archive        | GitHub Pages, served from the `gh-pages` branch     |
 | Timezone       | `luxon`, pinned to `Asia/Kuala_Lumpur`              |
 
-If Groq fails for any reason (quota, network, malformed output), the program
-automatically falls back to Gemini.
+If Gemini fails for any reason (quota, network, malformed output), the program
+automatically falls back to Groq. Groq led until August 2026, when its free tier
+dropped to 8,000 tokens a minute — below what a full three-slot writing pass
+needs — so it now catches thin days rather than carrying every one.
 
 ## How the writing is grounded
 
@@ -141,7 +145,7 @@ daily-history/
 │   ├── regions.ts        # Deterministic SEA / Malaysia classification
 │   ├── enrich.ts         # Article text, images, local-language sources, Wikidata
 │   ├── fetchFigures.ts   # Figure-of-the-day fallback, ranked in code
-│   ├── fetchHistory.ts   # Two-pass AI (select → write), Groq→Gemini fallback
+│   ├── fetchHistory.ts   # Two-pass AI (select → write), Gemini→Groq fallback
 │   ├── sentLog.ts        # What has already been featured
 │   ├── buildEmail.ts     # HTML part (red/black/white/grey)
 │   ├── buildText.ts      # Plain-text part
@@ -206,16 +210,19 @@ little API quota; `npm run dev` is the only command that actually sends mail.
   your own domain, verify it in Resend and set `FROM_EMAIL`, e.g.
   `History Today <news@yourdomain.com>`.
 
-### 2. Groq (primary AI)
-
-- Sign up at [console.groq.com](https://console.groq.com) → **API Keys** → **Create API Key**.
-- Put it in `.env` as `GROQ_API_KEY`.
-
-### 3. Gemini (fallback AI)
+### 2. Gemini (primary AI)
 
 - Go to [aistudio.google.com](https://aistudio.google.com) → **Get API Key**, put it in `.env` as `GEMINI_API_KEY`.
-- Only used if Groq fails. Note the free tier is region-dependent — some
-  projects return `limit: 0`, in which case the program simply stays on Groq.
+- The free tier is region-dependent — some projects return `limit: 0`, which is a
+  permanent refusal rather than a rate limit. If that is your project, keep Groq
+  first by swapping the order in `complete()` and expect rich days to fail.
+
+### 3. Groq (fallback AI)
+
+- Sign up at [console.groq.com](https://console.groq.com) → **API Keys** → **Create API Key**.
+- Put it in `.env` as `GROQ_API_KEY`. Its free tier caps at 8,000 tokens per
+  minute, enough for the selection pass and a thin day's writing pass, not a
+  full one.
 
 ## Deploying the daily schedule (GitHub Actions)
 
@@ -251,8 +258,8 @@ when the email doesn't arrive.
 Optional environment variables (defaults shown):
 
 ```env
-GEMINI_MODEL=gemini-2.0-flash
-GROQ_MODEL=llama-3.3-70b-versatile
+GEMINI_MODEL=gemini-3.6-flash
+GROQ_MODEL=openai/gpt-oss-120b
 FROM_EMAIL=History Today <onboarding@resend.dev>
 ```
 

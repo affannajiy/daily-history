@@ -22,13 +22,15 @@ verified feed, never from a model.
 | `regions.ts` | SEA / Malaysia classification, regex only |
 | `enrich.ts` | Article text, images, local-language sources, Wikidata facts |
 | `fetchFigures.ts` | Figure-of-the-day fallback, ranked in code |
-| `fetchHistory.ts` | Two-pass AI (select → write), Groq → Gemini |
+| `fetchHistory.ts` | Two-pass AI (select → write), Gemini → Groq |
 | `sentLog.ts` | What has already been featured, so it is not repeated |
 | `buildEmail.ts` | HTML part |
 | `buildText.ts` | Plain-text part |
 | `subject.ts` | Subject line and preheader |
 | `archive.ts` | Archive pages, published from the orphan `gh-pages` branch |
 | `sendEmail.ts` | Resend delivery |
+| `alert.ts` | Failure alert — plain mail, redacted error, no template |
+| `redact.ts` | Strips credentials from anything leaving the process |
 | `rankTest.ts` | Subject-page regression test |
 
 ## Read the skill before you edit
@@ -38,12 +40,14 @@ which is what stops it being undone by accident. Load the matching skill first:
 
 | Touching | Skill |
 | --- | --- |
-| `buildEmail.ts`, `buildText.ts`, `subject.ts`, `preview.ts`, anything visual, `UI-UX_Rulebook.md` | `email-template` |
+| `buildEmail.ts`, `buildText.ts`, `subject.ts`, `preview.ts`, anything visual, `rulebook/UI-UX_Rulebook.md` | `email-template` |
 | `fetchHistory.ts`, prompts, guards, filler prose, references, `sentLog.ts` | `ai-grounding` |
 | `fetchOnThisDay.ts`, `enrich.ts`, `regions.ts`, `fetchFigures.ts`, `http.ts`, ranking test | `source-fetching` |
-| Workflow, cron, secrets, CI, Pages, avatar/BIMI, "email didn't arrive" | `deploy-and-ops` |
+| Workflow, cron, secrets, CI, Pages, avatar/BIMI, "email didn't arrive", anything in `SECURITY.md` | `deploy-and-ops` |
 
-`DEVNOTE.md` is the human runbook for deploying and operating it.
+`DEVNOTE.md` is the human runbook for deploying and operating it. `SECURITY.md`
+is the threat model and posture; `rulebook/` holds the general references it is
+measured against.
 
 ## Commands
 
@@ -61,9 +65,9 @@ either as a smoke test — `npm run dryrun` exists for that. There is no linter 
 the only test is `test:ranking`, so `preview` and `dryrun` carry most of the
 verification.
 
-Local secrets come from `.env` via `dotenv/config`. Required: `GROQ_API_KEY`,
-`RESEND_API_KEY`, `RECIPIENT_EMAIL`. Optional: `GEMINI_API_KEY`, `FROM_EMAIL`,
-`GROQ_MODEL`, `GEMINI_MODEL`.
+Local secrets come from `.env` via `dotenv/config`. Required: `GEMINI_API_KEY`
+(primary writer), `GROQ_API_KEY` (fallback), `RESEND_API_KEY`,
+`RECIPIENT_EMAIL`. Optional: `FROM_EMAIL`, `GROQ_MODEL`, `GEMINI_MODEL`.
 
 ## Rules that hold everywhere
 
@@ -79,7 +83,11 @@ Local secrets come from `.env` via `dotenv/config`. Required: `GROQ_API_KEY`,
   thin day looks short rather than padded. Do not weaken a guard to fill space,
   and do not add placeholder text.
 - **No verified events → hard failure.** `generateHistory` throws rather than
-  emit unsourced content. Intentional.
+  emit unsourced content. Intentional — but a failed run now mails a redacted
+  alert (`alert.ts`) instead of dying silently.
+- **Nothing outside `alert.ts` may put an error into an email.** Gemini takes its
+  API key as a query parameter and `HttpError` quotes the full URL; the Actions
+  log masks secrets, an inbox does not.
 - **Cards are a discriminated union** (`EventCard | FigureCard`, keyed by
   `kind`), not one type with everything optional.
 - **Regional sections are nullable.** Null means neither a verified event nor a
@@ -92,7 +100,10 @@ Local secrets come from `.env` via `dotenv/config`. Required: `GROQ_API_KEY`,
   wrong-subject card renders perfectly. `MIN_PASS` in `rankTest.ts` records
   measured floors (27/46 offline, 41/46 live); raise them when you improve the
   ranking, never lower one to make a change pass.
-- **Escape all AI-supplied strings in `buildEmail.ts`.** Nothing upstream escapes.
+- **Escape all AI-supplied strings in `buildEmail.ts`.** Nothing upstream
+  escapes. Text goes through `esc()`; anything landing in an `href` or `src`
+  goes through `safeUrl()`, which drops non-`http(s)` schemes. They are not
+  interchangeable — entity-encoding does not stop `javascript:`.
 - Timezone is pinned to `Asia/Kuala_Lumpur` via luxon; never use the host clock.
 - TypeScript strict, CommonJS, `Node16` resolution, `src/` → `dist/`. CI on Node
   22, local dev on Node 24. `scripts/` is outside `rootDir` and is not

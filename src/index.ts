@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { writeFileSync } from "node:fs";
 import { DateTime } from "luxon";
 import { fetchOnThisDay } from "./fetchOnThisDay";
 import { generateHistory } from "./fetchHistory";
@@ -8,6 +9,7 @@ import { buildSubject } from "./subject";
 import { sendEmail } from "./sendEmail";
 import { writeArchive } from "./archive";
 import { appendSentLog, readSentLog, sentKeys } from "./sentLog";
+import { ALERT_MARKER, sendFailureAlert } from "./alert";
 
 const TZ = "Asia/Kuala_Lumpur";
 
@@ -62,7 +64,21 @@ async function main(): Promise<void> {
   console.log("Done.");
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error("Fatal error:", err);
+
+  // A failed run used to be silent: no mail, no archive entry, only a red tick
+  // in a tab nobody opens. Two retired model ids cost two mornings that way.
+  // The marker tells the workflow this failure has already been reported, so
+  // its own `if: failure()` step stays quiet unless the crash happened before
+  // this code could run at all.
+  const dateLabel = DateTime.now().setZone(TZ).toFormat("LLLL d, yyyy");
+  if (await sendFailureAlert(err, dateLabel)) {
+    try {
+      writeFileSync(ALERT_MARKER, "");
+    } catch {
+      // A missing marker only costs a duplicate alert. Never mask the real error.
+    }
+  }
   process.exit(1);
 });

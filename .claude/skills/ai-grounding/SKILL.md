@@ -5,8 +5,8 @@ description: Working on the AI pipeline in src/fetchHistory.ts — prompts, mode
 
 # The AI pipeline
 
-`src/fetchHistory.ts`. Groq first (`llama-3.3-70b-versatile`), Gemini as
-best-effort fallback (`gemini-2.0-flash`), `temperature: 0` throughout. Both go
+`src/fetchHistory.ts`. Gemini first (`gemini-3.6-flash`), Groq as fallback
+(`openai/gpt-oss-120b`), `temperature: 0` throughout. Both go
 through `http.ts` (3 attempts, jittered backoff, 60s timeout — a writing pass
 over three articles is slow by nature and must not be aborted early).
 
@@ -111,5 +111,34 @@ a prompt change that improves a rich day often empties a thin one.
 ## Gemini caveat
 
 Gemini's free tier is region-dependent and may return `limit: 0` — a permanent
-refusal, not a transient rate limit. That is why Groq is primary and the fallback
-is best-effort rather than assumed.
+refusal, not a transient rate limit.
+
+Groq led for that reason until August 2026, when every Groq chat model landed on
+an 8,000 tokens-per-minute free tier. A three-slot write pass is ~8.4k tokens and
+returns a flat 413 no waiting fixes, so the order flipped: Gemini writes, Groq
+catches the days that fit and the outages Gemini has. Neither provider is safe to
+assume — that is why there are two.
+
+## Model ids rot, and a dead id kills the run
+
+Both providers retire ids with no grace period; the call 404s with
+`model_not_found` and `generateHistory` takes the whole digest down with it.
+`llama-3.3-70b-versatile` and `gemini-2.0-flash` both died in August 2026, one
+day apart.
+
+When that happens, read the live list — do not guess a successor name:
+
+```bash
+curl -s -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models
+curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY"
+```
+
+Then update the defaults in `fetchHistory.ts` **and** `.env.example`,
+`README.md` and this file, and confirm the new id still honours
+`response_format: json_object` (Groq) / `responseMimeType` (Gemini) before
+trusting it. `GROQ_MODEL`/`GEMINI_MODEL` env overrides exist so a live run can be
+rescued from repo secrets without a deploy.
+
+Groq's current chat line is gpt-oss, a reasoning model. It puts its chain of
+thought in a separate `reasoning` field, so `message.content` is still bare JSON
+and the parsers are unaffected.

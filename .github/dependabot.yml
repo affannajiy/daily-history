@@ -1,0 +1,21 @@
+# Pinning actions to a commit SHA stops a retagged action running with this
+# repo's secrets, but a pin that is never updated is just an old version. This
+# is the other half of that trade: Dependabot proposes the bump, a human reads
+# it, and the pin stays both fixed and current.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the dev tooling. None of it runs in `npm start`, so it is
+      # reviewed together and never urgently.
+      dev-tooling:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

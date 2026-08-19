@@ -10,12 +10,22 @@
  * a 429, a 5xx, a timeout or a dropped socket are all worth another attempt.
  */
 
+import { redact } from "./redact";
+
 export const UA =
   "daily-history/1.0 (https://github.com/affannajiy/daily-history; affannajiy@gmail.com)";
 
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_ATTEMPTS = 3;
 const BASE_BACKOFF_MS = 400;
+
+/**
+ * Cap on an honoured `Retry-After`. A model provider's per-minute token window
+ * asks for tens of seconds, which is worth waiting out — the job runs once a
+ * day, so a minute of sleep is free and a lost digest is not. Anything longer is
+ * a quota that will not clear inside this run.
+ */
+const MAX_RETRY_AFTER_MS = 75000;
 
 export interface RequestOptions {
   timeoutMs?: number;
@@ -42,9 +52,37 @@ function backoff(attempt: number): number {
   return Math.round(Math.random() * BASE_BACKOFF_MS * 2 ** attempt);
 }
 
+/**
+ * Providers say how long to wait; jittered backoff tops out around a second and
+ * guessing lost a whole digest to a Groq token-per-minute limit that wanted
+ * three. Honour the header when it is present and sane, else fall back to the
+ * jitter. Accepts both the seconds and HTTP-date forms of `Retry-After`.
+ */
+function retryDelay(res: Response, attempt: number): number {
+  const header = res.headers.get("retry-after");
+  if (header) {
+    const seconds = Number(header);
+    const ms = Number.isFinite(seconds)
+      ? seconds * 1000
+      : Date.parse(header) - Date.now();
+    if (ms > 0) return Math.min(ms, MAX_RETRY_AFTER_MS);
+  }
+  // Floor the jitter: a provider answering 503 "high demand" with no header was
+  // being retried 400ms later, three times, which is not a wait at all.
+  return Math.max(backoff(attempt), 1500);
+}
+
 export class HttpError extends Error {
+  /**
+   * The message is redacted at construction, not at the point of logging.
+   *
+   * Gemini passes its API key in the query string, so an unredacted message
+   * leaks it into the terminal on every local dry run, into any preview file,
+   * and into the failure alert. Doing it here means no future caller can
+   * forget: there is no path that produces the raw one.
+   */
   constructor(readonly status: number, readonly body: string, url: string) {
-    super(`HTTP ${status} for ${url}: ${body.slice(0, 300)}`);
+    super(redact(`HTTP ${status} for ${url}: ${body.slice(0, 300)}`));
     this.name = "HttpError";
   }
 }
@@ -63,13 +101,16 @@ export async function request(
     method = "GET",
     headers = {},
     body,
-    label = url,
+    label = redact(url),
   } = options;
 
   let lastError: unknown;
+  /** Set when the previous attempt's response asked for a specific wait. */
+  let nextDelayMs: number | null = null;
 
   for (let attempt = 0; attempt < attempts; attempt++) {
-    if (attempt > 0) await sleep(backoff(attempt - 1));
+    if (attempt > 0) await sleep(nextDelayMs ?? backoff(attempt - 1));
+    nextDelayMs = null;
 
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -88,8 +129,11 @@ export async function request(
       if (!isRetryableStatus(res.status)) throw error;
 
       lastError = error;
+      nextDelayMs = retryDelay(res, attempt);
       console.warn(
-        `${label}: HTTP ${res.status}, retrying (${attempt + 1}/${attempts})...`
+        `${label}: HTTP ${res.status}, retrying in ${Math.round(
+          nextDelayMs / 1000
+        )}s (${attempt + 1}/${attempts})...`
       );
     } catch (err) {
       // A non-retryable HttpError thrown just above must not be swallowed here.

@@ -27,11 +27,14 @@ Real feed, real model, writes `preview-live.html`, sends nothing.
 | --- | --- | --- |
 | Resend | [resend.com](https://resend.com) → API Keys → Create | `RESEND_API_KEY` |
 | Groq | [console.groq.com](https://console.groq.com) → API Keys | `GROQ_API_KEY` |
-| Gemini *(optional)* | [aistudio.google.com](https://aistudio.google.com) → Get API Key | `GEMINI_API_KEY` |
+| Gemini | [aistudio.google.com](https://aistudio.google.com) → Get API Key | `GEMINI_API_KEY` |
 
-Gemini is the fallback only. Its free tier is **region-dependent** — some
-projects get `limit: 0`, which is a permanent refusal and not a rate limit you
-can wait out. If that happens, leave it unset; the job stays on Groq.
+Gemini leads and Groq catches. Groq was primary until August 2026, when its
+free tier fell to 8,000 tokens a minute — a full writing pass is ~8.4k and gets a
+flat 413 — so **`GEMINI_API_KEY` is now effectively required**, not optional.
+Gemini's free tier is region-dependent: some projects get `limit: 0`, a permanent
+refusal rather than a rate limit you can wait out. If that is yours, Groq still
+runs, but expect rich days to fail.
 
 ### 1.2 Run it locally first
 
@@ -55,7 +58,7 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 - `GROQ_API_KEY` *(required)*
 - `RESEND_API_KEY` *(required)*
 - `RECIPIENT_EMAIL` *(required)*
-- `GEMINI_API_KEY` *(optional)*
+- `GEMINI_API_KEY` *(required in practice — it is the primary writer)*
 - `FROM_EMAIL` *(optional — only once you've verified a domain in Resend)*
 
 Names must match exactly; `.github/workflows/daily.yml` maps them one-to-one.
@@ -173,6 +176,19 @@ MONTH=2 DAY=8 npm run dryrun
 
 ## 4. When the email doesn't arrive
 
+**A failed run now emails you.** Subject `FAILED: History Today — <date>`, plain
+text, with the error and a link to the run. If the crash happened before the app
+could speak — a bad build, a missing secret, a ranking regression — the workflow
+sends a shorter one saying so. Exactly one of the two fires: `npm start` leaves
+an `alert-sent` marker and the workflow step skips when it sees it.
+
+Error text is redacted in `src/alert.ts` before it goes anywhere. Gemini's API
+key rides in the URL query string and `HttpError` quotes the URL, so **do not
+route error text into mail from anywhere else**.
+
+Silence now means something worse than a failure: the workflow never ran at all
+(see §2 on skipped schedules), or Resend itself is down.
+
 In order:
 
 1. **Actions tab — did it run at all?** If there's no run, it's cron, not code.
@@ -180,7 +196,11 @@ In order:
 2. **Read the job log.** `generateHistory` **throws on purpose** when the feed
    returned no verified events for the day. That's a correct failure — the design
    refuses to invent content. Nothing to fix.
-3. **Model quota.** Groq exhausted + Gemini absent or `limit: 0` = no writer left.
+3. **Model quota — or a retired model.** Gemini exhausted + Groq over its
+   8,000 TPM cap = no writer left. A `404 model_not_found` is the other flavour:
+   the provider deleted the id. Both defaults died that way in August 2026. List
+   the live ids and update `GEMINI_MODEL`/`GROQ_MODEL` in `src/fetchHistory.ts`;
+   the same names work as repo secrets for an immediate fix without a deploy.
 4. **Resend dashboard.** Check for a bounce or a suppression list entry before
    assuming the job never reached the send step. A soft-bounced address stays
    suppressed.
@@ -284,12 +304,25 @@ A **VMC** certificate is optional — it buys the blue checkmark, not the logo.
 
 ---
 
+## 6a. Security
+
+`SECURITY.md` is the posture doc — what is exposed, what is deliberately not
+applicable, and which parts of the workflow are load-bearing. Read it before
+touching the workflow or the templates.
+
+The short version: the secrets, the untrusted HTML, and the CI job are the whole
+attack surface. Actions are SHA-pinned, the source checkout drops its push
+token, `npm audit` gates the send, and every error message is redacted before it
+can reach a log or an inbox — because Gemini puts its API key in the URL.
+
 ## 7. Maintenance
 
 - **Node.** CI pins 22 in `daily.yml`; local dev is on 24. Bump both together.
-- **`npm audit`.** `sharp` and `tsx`/`esbuild` are devDependencies used by
-  `build:avatar` and the dev scripts — they never run in the shipped `npm start`
-  path, so an advisory there is not a production exposure. Still worth clearing.
+- **`npm audit`.** CI runs `--omit=dev --audit-level=high` before the send.
+  `sharp` and `tsx`/`esbuild` are devDependencies used by `build:avatar` and the
+  dev scripts — they never run in the shipped `npm start` path, so an advisory
+  there is not a production exposure and does not block the digest. Still worth
+  clearing. Dependabot opens the bumps weekly, dev tooling grouped into one PR.
 - **Cost.** Groq, Gemini and Resend free tiers cover one email a day with room to
   spare. `dryrun` consumes model quota; `preview` and the offline ranking test
   don't.

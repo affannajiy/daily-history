@@ -146,3 +146,20 @@ MONTH=8 DAY=13 npm run dryrun
 Any new source must supply a **date it can be held to**. A source that gives good
 prose but no verifiable date reintroduces the original bug. Fetches must time out
 (8s here) and degrade to empty, never throw into the pipeline.
+
+## Every request goes through `http.ts` — including this file's
+
+`fetchFigures.ts` used to hold a private `fetch` with its own timeout, its own
+copy of the user agent and **no retry**, which meant one blip on the figures
+endpoint silently cost the figure card on a job that gets one attempt a day. It
+now calls `getJsonOrNull` like everything else.
+
+If you are about to write `fetch(` in `src/`, you are about to reintroduce that.
+
+Two properties hold across the fetching layer and are worth keeping:
+
+- **Every host is a hardcoded literal**, and every parameter goes through
+  `URLSearchParams` or `encodeURIComponent`. No URL taken from a response is
+  ever fetched back, so there is no request-forgery path. Do not add one.
+- **URLs that reach the templates are checked at the point of use**, not
+  trusted from upstream — see `safeUrl()` in the `email-template` skill.

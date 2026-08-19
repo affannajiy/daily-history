@@ -20,6 +20,21 @@ function esc(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * The URL form of `esc`. Entity-escaping is the wrong control for an `href` or
+ * `src`: it stops the attribute being broken out of, but `javascript:` and
+ * `data:` survive it untouched. Every URL here is built in code from Wikimedia
+ * and Wikidata responses — Wikidata is public and editable, so the scheme is
+ * checked at the point of use rather than trusted from upstream.
+ *
+ * An unusable URL yields an empty string, and callers drop the link. A missing
+ * source line is a thin card; a live `javascript:` link is a defect.
+ */
+function safeUrl(url: string): string {
+  const trimmed = String(url).trim();
+  return /^https?:\/\//i.test(trimmed) ? esc(trimmed) : "";
+}
+
 /** Splits a block of prose into <p> paragraphs on blank lines or newlines. */
 function paragraphs(text: string, style: string): string {
   return String(text)
@@ -80,13 +95,19 @@ function kicker(label: string, wide: boolean): string {
  */
 function imageBlock(image: CardImage | null): string {
   if (!image) return "";
+  const src = safeUrl(image.url);
+  if (!src) return "";
+  const source = safeUrl(image.sourceUrl);
+  const credit = source
+    ? `${esc(image.credit)} &middot; <a href="${source}" style="color:${C.grey};text-decoration:underline;">source</a>`
+    : esc(image.credit);
   return `
     <table role="presentation" border="0" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
       <tr><td>
-        <img src="${esc(image.url)}" alt="${esc(image.alt)}" width="584" style="display:block;width:100%;max-width:584px;height:auto;border:0;outline:none;text-decoration:none;">
+        <img src="${src}" alt="${esc(image.alt)}" width="584" style="display:block;width:100%;max-width:584px;height:auto;border:0;outline:none;text-decoration:none;">
       </td></tr>
       <tr><td style="padding:6px 0 0;font-family:${SANS};font-size:10px;line-height:1.4;color:${C.grey};">
-        ${esc(image.credit)} &middot; <a href="${esc(image.sourceUrl)}" style="color:${C.grey};text-decoration:underline;">source</a>
+        ${credit}
       </td></tr>
     </table>`;
 }
@@ -265,8 +286,12 @@ function referenceItems(refs: Reference[] | undefined): string {
       const title = esc(r.title);
       // Underlined, not colour-only: colour alone is not a distinguishing cue
       // for a reader who cannot separate red from black (WCAG 1.4.1).
-      const body = r.url
-        ? `<a href="${esc(r.url)}" style="color:${C.red};text-decoration:underline;">${title}</a>`
+      // A reference whose URL fails the scheme check still cites its source —
+      // it just does so unlinked, which is the same shape as a named authority
+      // the model was not allowed to link in the first place.
+      const href = r.url ? safeUrl(r.url) : "";
+      const body = href
+        ? `<a href="${href}" style="color:${C.red};text-decoration:underline;">${title}</a>`
         : title;
       return `<li style="margin:0 0 6px;">${body}</li>`;
     })
@@ -340,11 +365,12 @@ function preheaderBlock(text: string): string {
  * from the bottom — a link at the foot would be inside the part that vanished.
  */
 function browserLink(url: string | undefined): string {
-  if (!url) return "";
+  const href = url ? safeUrl(url) : "";
+  if (!href) return "";
   return `
           <tr>
             <td align="right" style="padding:0 28px 8px;font-family:${SANS};font-size:11px;color:${C.grey};">
-              <a href="${esc(url)}" style="color:${C.grey};text-decoration:underline;">View in browser</a>
+              <a href="${href}" style="color:${C.grey};text-decoration:underline;">View in browser</a>
             </td>
           </tr>`;
 }
@@ -401,8 +427,8 @@ export function buildEmailHtml(
             <td style="background:${C.black};padding:16px 28px;">
               <div style="font-family:${MONO};font-size:11px;letter-spacing:1px;color:#9a9a9a;">
                 ${esc(dateLabel)} &middot; Events verified against Wikimedia On This Day${
-                  browserUrl
-                    ? ` &middot; <a href="${esc(browserUrl)}" style="color:#9a9a9a;text-decoration:underline;">archive</a>`
+                  browserUrl && safeUrl(browserUrl)
+                    ? ` &middot; <a href="${safeUrl(browserUrl)}" style="color:#9a9a9a;text-decoration:underline;">archive</a>`
                     : ""
                 }
               </div>

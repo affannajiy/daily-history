@@ -1,6 +1,6 @@
 ---
 name: email-template
-description: Editing what the reader sees — src/buildEmail.ts, buildText.ts, subject.ts. Layout, colour, card blocks, the subject line, the preheader, the plain-text part, images. Use when changing how the digest looks or reads, adding or removing a block, restyling, or auditing against UI-UX_Rulebook.md.
+description: Editing what the reader sees — src/buildEmail.ts, buildText.ts, subject.ts. Layout, colour, card blocks, the subject line, the preheader, the plain-text part, images. Use when changing how the digest looks or reads, adding or removing a block, restyling, or auditing against rulebook/UI-UX_Rulebook.md.
 ---
 
 # Editing the email
@@ -75,7 +75,7 @@ card opens with a broken box that shifts the layout when it loads), and the
 credit rendered as a **caption, not alt text** — a screen reader announcing a
 licence name learns nothing about the picture.
 
-## Rulings already made against UI-UX_Rulebook.md
+## Rulings already made against `rulebook/UI-UX_Rulebook.md`
 
 These are in the code as comments. Read them before restyling — each one is a
 fix for a defect that was found in an audit, so reverting one reintroduces it.
@@ -124,3 +124,20 @@ fix for a defect that was found in an audit, so reverting one reintroduces it.
 types, the `parseEventCard`/`parseFigureCard` guards, the HTML renderer, **the
 text renderer** and the preview sample are coupled **by hand, not by a schema**.
 Change all six together or the field silently vanishes from one of them.
+
+## Two escapers, and using the wrong one is a hole
+
+`esc()` is for text. `safeUrl()` is for anything that lands in an `href` or a
+`src`, and it is not interchangeable with `esc()`: entity-encoding stops an
+attribute being broken out of, but `javascript:` and `data:` pass through it
+untouched. Official-website links come from Wikidata, which anyone can edit.
+
+`safeUrl()` returns `""` for anything that is not `http(s)`, and every caller
+treats that as "no link": the reference renders unlinked, the image block is
+dropped whole. That is the same shape as an authority the model was never
+allowed to link, so nothing downstream needs a new case.
+
+Adding a new `href` or `src`? It goes through `safeUrl()`. There is no third
+option.
+
+See `SECURITY.md` for why this is a boundary rather than a nicety.

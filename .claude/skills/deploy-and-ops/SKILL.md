@@ -69,18 +69,36 @@ Repository → Settings → Secrets and variables → Actions.
 
 | Secret | Required | Notes |
 | --- | --- | --- |
-| `GROQ_API_KEY` | yes | primary model |
+| `GEMINI_API_KEY` | yes | primary model; free tier is region-dependent and may return `limit: 0` |
+| `GROQ_API_KEY` | yes | fallback; 8,000 TPM free tier 413s on a full writing pass |
 | `RESEND_API_KEY` | yes | delivery |
 | `RECIPIENT_EMAIL` | yes | |
-| `GEMINI_API_KEY` | no | fallback; free tier is region-dependent and may return `limit: 0` permanently |
 | `FROM_EMAIL` | no | only once a domain is verified in Resend |
 
 Locally the same names live in `.env`, loaded by `dotenv/config` in `index.ts`.
 
 ## CI
 
-Node 22 (`actions/setup-node@v5`), `npm ci` → `npm run build` →
+Node 22 (`actions/setup-node`), `npm ci` → `npm audit` → `npm run build` →
 `npm run test:ranking` → `npm start` → commit archive. Local dev is Node 24.
+
+Three things in the workflow are security posture, not style, and undoing any of
+them is a regression:
+
+- **Actions are pinned by commit SHA**, with the tag in a trailing comment. A tag
+  is mutable, and whoever controls the action would be running code inside a job
+  that holds every secret here. Dependabot (`.github/dependabot.yml`) bumps the
+  pins so they stay current — a pin nobody updates is just an old version.
+- **The source checkout sets `persist-credentials: false`.** It is only read
+  from, so the push token does not sit in `.git/config` while `npm start` parses
+  untrusted feed and model output. The `site/` checkout keeps its credentials
+  because it is the one that pushes.
+- **`npm audit --omit=dev --audit-level=high` runs before the send.** Production
+  dependencies only: `sharp` and `tsx` never execute in `npm start`, and an
+  advisory in dev tooling must not cost a morning's digest.
+
+`permissions: contents: write` is job-wide because Actions has no per-step
+scope. The credential drop above is the compensating control.
 TypeScript is strict, CommonJS emit, `Node16` resolution, `src/` → `dist/`.
 
 The ranking test runs **before** the send: subject-page selection fails silently,
@@ -103,6 +121,24 @@ The public base URL is `ARCHIVE_BASE_URL` in `src/archive.ts`. It is hardcoded t
 `https://affannajiy.github.io/daily-history` — **forking or renaming the repo
 means editing it**, or every link in every email points at someone else's site.
 
+## Failure alerts
+
+A failed run mails `FAILED: History Today — <date>` to `RECIPIENT_EMAIL`. Two
+senders, never both: `src/alert.ts` sends the detailed one from the app's catch
+block and drops an `alert-sent` marker; the workflow's
+`if: failure() && hashFiles('alert-sent') == ''` step covers crashes that happen
+before the app runs and carries no error text.
+
+`redact()` in `alert.ts` strips key-shaped query params, bearer tokens and the
+literal secret values. This is load-bearing: **Gemini passes its API key in the
+URL** and `HttpError` puts the URL in its message. The Actions log masks secrets;
+email does not. Never send raw error text or a raw job log from anywhere else.
+
+The alert is deliberately plain — no `buildEmail` template, no HTML. An alert
+about a broken run must not depend on the code that might be broken.
+
+Silence therefore means the workflow did not run, or Resend is down.
+
 ## When the email does not arrive
 
 Check in this order:
@@ -112,8 +148,11 @@ Check in this order:
    trigger it manually to distinguish "never ran" from "ran and failed".
 2. **Job log** — `generateHistory` **throws by design** when the feed returned no
    verified events. That is a correct failure, not a bug to patch around.
-3. **Groq quota** — if Groq failed and `GEMINI_API_KEY` is unset or returns
-   `limit: 0`, there is no writer left and the run fails.
+3. **Model quota, or a retired id.** Gemini is primary; Groq's 8,000 TPM free
+   tier 413s on a full writing pass, so it cannot cover a rich day alone. A
+   `404 model_not_found` means the provider deleted the id — both defaults died
+   that way in August 2026. List the live ids, then set `GEMINI_MODEL` /
+   `GROQ_MODEL` as repo secrets for an immediate fix without a deploy.
 4. **Resend** — check the Resend dashboard for a bounce or a suppression before
    assuming the job never reached the send step.
 5. **The archive** — if `YYYY-MM-DD.html` exists on `gh-pages` for today,

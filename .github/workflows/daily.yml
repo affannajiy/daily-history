@@ -8,6 +8,9 @@ on:
   workflow_dispatch: # Allow manual trigger for testing
 
 # The job commits the archive page and the sent-event log to `gh-pages`.
+# `contents: write` is the narrowest grant that still allows that push; there is
+# no per-step scope in Actions, so the source checkout below drops the token
+# instead — only the `site/` checkout needs to authenticate anything.
 permissions:
   contents: write
 
@@ -15,7 +18,18 @@ jobs:
   send-email:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      # Actions are pinned by commit SHA, not by tag. A tag is mutable: whoever
+      # controls the action can repoint `v5` at new code, and that code runs in
+      # a job holding every secret this workflow has. Renovate the pin
+      # deliberately; do not loosen it back to a tag.
+      #
+      # `persist-credentials: false`: this checkout is only ever read from, so
+      # it does not need the push token sitting in `.git/config` while `npm
+      # start` parses untrusted feed and model responses. The `site/` checkout
+      # below keeps its credentials, because it is the one that pushes.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
       # The published archive and the sent log live on an orphan `gh-pages`
       # branch, checked out beside the source rather than inside it. Keeping
@@ -23,16 +37,24 @@ jobs:
       # generated HTML, and the bot's daily commit never collides with local
       # work. `fetch-depth: 0` is not needed — only the tip is ever appended to.
       - name: Check out the archive branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: gh-pages
           path: site
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+
+      # Known CVEs are a supply-chain problem, not a code-review one: nothing
+      # else in this pipeline would notice one. Production dependencies only —
+      # `sharp` and `tsx` are dev tooling and never run in `npm start`, so an
+      # advisory there must not block the morning's digest.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - run: npm run build
 
       # Offline and deterministic. Subject-page selection fails silently — a
@@ -54,6 +76,28 @@ jobs:
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
           # Optional: set a verified sender, e.g. "History Today <news@yourdomain.com>"
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+
+      # The backstop. `npm start` mails its own failure alert with the actual
+      # error in it and leaves `alert-sent` behind; this step covers the crashes
+      # that happen before it can — a failed build, a missing secret, a ranking
+      # regression. No error detail is available here, only the run link.
+      - name: Report a failure npm start could not report
+        if: failure() && hashFiles('alert-sent') == ''
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$RESEND_API_KEY" ] && [ -n "$RECIPIENT_EMAIL" ] || exit 0
+          DATE=$(TZ=Asia/Kuala_Lumpur date "+%B %-d, %Y")
+          # No job log is quoted: it is not secret-masked in a file the way the
+          # Actions UI masks it on screen, and this mail leaves that protection.
+          jq -n --arg from "${FROM_EMAIL:-History Today <onboarding@resend.dev>}"                 --arg to "$RECIPIENT_EMAIL"                 --arg subject "FAILED: History Today — $DATE (before send)"                 --arg text "The workflow failed before the digest could report anything itself, so there is no error text here — the build, the ranking test or a secret is the likely cause.
+
+          Run log: $RUN_URL
+
+          Nothing was archived and no event was marked as used."                 '{from:$from,to:$to,subject:$subject,text:$text}'           | curl -sS -X POST https://api.resend.com/emails               -H "Authorization: Bearer $RESEND_API_KEY"               -H "Content-Type: application/json"               --data @- > /dev/null
 
       # Runs even if the send failed, so a digest that was generated and
       # archived is still readable at its URL. `npm start` only writes the sent

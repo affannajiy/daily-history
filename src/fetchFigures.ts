@@ -13,11 +13,8 @@
  */
 
 import { OnThisDayEvent } from "./fetchOnThisDay";
+import { getJsonOrNull } from "./http";
 
-const UA =
-  "daily-history/1.0 (https://github.com/affannajiy/daily-history; affannajiy@gmail.com)";
-
-const TIMEOUT_MS = 8000;
 /** Below this, the article is a stub and there is nothing to write from. */
 const MIN_ARTICLE_BYTES = 4000;
 /** Interwiki counts are fetched per title, so only the shortlist pays for them. */
@@ -30,25 +27,15 @@ export interface FigureCandidate extends OnThisDayEvent {
   anchorKind: FigureKind;
 }
 
+/**
+ * Every request in this file goes through `http.ts` like every other outbound
+ * call in the project. This used to be a private `fetch` with its own timeout,
+ * its own copy of the user agent and no retry at all — so a single blip on the
+ * figures endpoint silently cost the whole figure card, on a job that gets one
+ * attempt a day.
+ */
 async function getJson(url: string): Promise<any | null> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA, Accept: "application/json" },
-      signal: ctrl.signal,
-    });
-    if (!res.ok) {
-      console.warn(`Figures HTTP ${res.status} for ${url}`);
-      return null;
-    }
-    return await res.json();
-  } catch (err) {
-    console.warn(`Figures request failed for ${url}:`, String(err));
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  return getJsonOrNull(url, { label: "Figures" });
 }
 
 /** Pulls the verified births or deaths list for the calendar day. */

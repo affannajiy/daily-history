@@ -14,3 +14,7 @@ preview.html
 preview.txt
 preview-live.html
 preview-live.txt
+
+# Failure-alert marker, written by a failed run so the workflow does not
+# duplicate the email. Runner-local.
+alert-sent

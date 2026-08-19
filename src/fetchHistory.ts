@@ -18,8 +18,20 @@ import { FigureCandidate, findRegionalFigure } from "./fetchFigures";
 import { postJson } from "./http";
 import { availableIds, eventKey } from "./sentLog";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+/**
+ * Both providers retire model ids without notice, and a dead id is a 404 that
+ * kills the whole run — `llama-3.3-70b-versatile` and `gemini-2.0-flash` both
+ * went in August 2026, on consecutive days. When a run dies with
+ * `model_not_found`, check the live list rather than guessing a successor:
+ * `GET https://api.groq.com/openai/v1/models` and
+ * `GET https://generativelanguage.googleapis.com/v1beta/models`.
+ *
+ * Groq's chat line is now the gpt-oss family; it returns its chain of thought in
+ * a separate `reasoning` field, so `message.content` is still clean JSON and the
+ * parsers need no change.
+ */
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const MAX_TIMELINE = 6;
 const MIN_TIMELINE = 3;
@@ -525,9 +537,10 @@ function parseFigureCard(
 /**
  * Model calls get a longer timeout than the article fetches — a writing pass
  * over three articles is slow by nature, and aborting it early would throw away
- * work that was going to succeed.
+ * work that was going to succeed. Both current models reason before answering,
+ * which pushed the write pass past the old 60s ceiling.
  */
-const MODEL_TIMEOUT_MS = 60000;
+const MODEL_TIMEOUT_MS = 150000;
 
 async function callGemini(prompt: string): Promise<string> {
   const key = process.env.GEMINI_API_KEY;
@@ -598,11 +611,17 @@ async function complete(
     throw new Error(`${provider} failed to return usable JSON.`);
   };
 
+  // Gemini leads and Groq catches. The order was the other way round until
+  // August 2026, when Groq's remaining chat models all landed on an 8,000
+  // tokens-per-minute free tier — a three-slot write pass is ~8.4k tokens and
+  // gets a flat 413, so Groq can no longer be relied on for the day's main call.
+  // It is still a real fallback: thin days fit, and the two providers do not
+  // share an outage.
   try {
-    return await attempt(callGroq, "Groq");
-  } catch (err) {
-    console.warn("Groq failed, falling back to Gemini:", String(err));
     return await attempt(callGemini, "Gemini");
+  } catch (err) {
+    console.warn("Gemini failed, falling back to Groq:", String(err));
+    return await attempt(callGroq, "Groq");
   }
 }
 
