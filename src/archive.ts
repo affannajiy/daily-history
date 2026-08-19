@@ -14,6 +14,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { safePath } from "./safePath";
 
 /**
  * Where editions are written. The workflow checks the `gh-pages` branch out
@@ -114,18 +115,21 @@ export function writeArchive(
   html: string,
   dir: string = ARCHIVE_DIR
 ): string {
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, `${isoDate}.html`), html, "utf8");
+  // Checked once, here, and every write below uses the checked value.
+  const base = safePath(dir, "ARCHIVE_DIR");
 
-  const entries = readIndex(dir).filter((e) => e.date !== isoDate);
+  mkdirSync(base, { recursive: true });
+  writeFileSync(join(base, `${isoDate}.html`), html, "utf8");
+
+  const entries = readIndex(base).filter((e) => e.date !== isoDate);
   entries.push({ date: isoDate, title });
   entries.sort((a, b) => b.date.localeCompare(a.date)); // newest first
 
-  writeFileSync(join(dir, INDEX_DATA), `${JSON.stringify(entries, null, 2)}\n`, "utf8");
-  writeFileSync(join(dir, "index.html"), renderIndex(entries), "utf8");
+  writeFileSync(join(base, INDEX_DATA), `${JSON.stringify(entries, null, 2)}\n`, "utf8");
+  writeFileSync(join(base, "index.html"), renderIndex(entries), "utf8");
   // Stops Pages running the output through Jekyll, which would drop any file
   // or directory beginning with an underscore.
-  writeFileSync(join(dir, ".nojekyll"), "", "utf8");
+  writeFileSync(join(base, ".nojekyll"), "", "utf8");
 
   return archiveUrl(isoDate);
 }

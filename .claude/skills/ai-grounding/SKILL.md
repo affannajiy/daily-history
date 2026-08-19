@@ -142,3 +142,21 @@ rescued from repo secrets without a deploy.
 Groq's current chat line is gpt-oss, a reasoning model. It puts its chain of
 thought in a separate `reasoning` field, so `message.content` is still bare JSON
 and the parsers are unaffected.
+
+## Model ids are pattern-checked before they reach a URL
+
+`GEMINI_MODEL` goes into the Gemini endpoint as a *path segment*:
+
+```
+https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=...
+```
+
+so an override containing `/`, `..`, `@` or `?` does not select a different
+model, it repoints the request — which is what CodeQL's `js/request-forgery`
+alert was about. `modelId()` in `fetchHistory.ts` tests both ids against
+`MODEL_ID` (alphanumeric plus `._-`, with at most one slash, for Groq's
+`openai/gpt-oss-120b` form) and falls back to the default with a warning rather
+than throwing: a bad override should cost you your override, not the digest.
+
+Keep the regex tight if you widen it. Anything that admits `:`, `?`, `@` or a
+second slash puts URL structure back under environment control.

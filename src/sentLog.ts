@@ -15,6 +15,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { OnThisDayEvent } from "./fetchOnThisDay";
+import { safePath } from "./safePath";
 
 /**
  * Lives on the `gh-pages` branch alongside the archive, so the daily run has
@@ -46,13 +47,14 @@ export function eventKey(event: OnThisDayEvent): string {
 }
 
 export function readSentLog(path: string = SENT_LOG_PATH): SentEntry[] {
-  if (!existsSync(path)) return [];
+  const file = safePath(path, "SENT_LOG_PATH");
+  if (!existsSync(file)) return [];
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf8"));
+    const parsed = JSON.parse(readFileSync(file, "utf8"));
     return Array.isArray(parsed) ? (parsed as SentEntry[]) : [];
   } catch (err) {
     // A corrupt log must not stop the digest — worst case we repeat an event.
-    console.warn(`Could not read ${path}, treating as empty:`, String(err));
+    console.warn(`Could not read ${file}, treating as empty:`, String(err));
     return [];
   }
 }
@@ -67,13 +69,14 @@ export function appendSentLog(
   keys: string[],
   path: string = SENT_LOG_PATH
 ): void {
-  const log = readSentLog(path).filter((entry) => entry.date !== date);
+  const file = safePath(path, "SENT_LOG_PATH");
+  const log = readSentLog(file).filter((entry) => entry.date !== date);
   log.push({ date, keys });
   // Chronological, so the file reads as a history rather than an append heap.
   log.sort((a, b) => a.date.localeCompare(b.date));
 
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(log, null, 2)}\n`, "utf8");
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, `${JSON.stringify(log, null, 2)}\n`, "utf8");
 }
 
 /**

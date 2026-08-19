@@ -174,3 +174,21 @@ with **Gravatar** (needs a FROM address you own) or **BIMI** (own domain + DMARC
 at `p=quarantine` or stronger + a DNS TXT record at `default._bimi.<domain>`).
 Neither works with the shared default `onboarding@resend.dev` sender. Committing
 the PNGs changes nothing on its own.
+
+## `ARCHIVE_DIR` and `SENT_LOG_PATH` must stay inside the workspace
+
+Both are joined straight into `writeFileSync`, so a typo in the workflow env
+block would not fail — it would write the archive somewhere else and the run
+would still report success. `safePath.ts` resolves each one and throws if it
+escapes `process.cwd()`, and callers use the *returned absolute path*, not the
+raw string, so the value that was checked is the value that gets written.
+
+The workflow's values (`site` and `site/data/sent.json`) are both relative to
+the workspace, which is why the check is a containment test against the working
+directory rather than an allow-list. Point either of them outside the checkout
+and the run stops on purpose.
+
+This is also what answers the eight `js/path-injection` alerts CodeQL raises
+here: it treats `process.env` as attacker input. In this project the environment
+is set by the workflow, so the honest framing is a mistake guard rather than an
+exploit fix — but a check in the code beats dismissing eight alerts.

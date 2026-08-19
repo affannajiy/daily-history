@@ -30,8 +30,38 @@ import { availableIds, eventKey } from "./sentLog";
  * a separate `reasoning` field, so `message.content` is still clean JSON and the
  * parsers need no change.
  */
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
-const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+
+/**
+ * A model id goes into the Gemini URL as a path segment, so an override
+ * containing `/`, `..`, `@` or a `?` does not merely pick a different model — it
+ * repoints the request at a different endpoint or host entirely. The value comes
+ * from the workflow rather than from a reader, so this is a guard against a
+ * fat-fingered secret, not against an attacker; it is also what stops the
+ * request being built from a string nothing has checked.
+ *
+ * Groq ids carry one slash (`openai/gpt-oss-120b`), Gemini ids carry none.
+ */
+const MODEL_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)?$/;
+
+function modelId(raw: string | undefined, fallback: string, name: string): string {
+  if (!raw) return fallback;
+  if (!MODEL_ID.test(raw)) {
+    console.warn(`${name} is not a valid model id, using ${fallback}.`);
+    return fallback;
+  }
+  return raw;
+}
+
+const GEMINI_MODEL = modelId(
+  process.env.GEMINI_MODEL,
+  "gemini-3.6-flash",
+  "GEMINI_MODEL"
+);
+const GROQ_MODEL = modelId(
+  process.env.GROQ_MODEL,
+  "openai/gpt-oss-120b",
+  "GROQ_MODEL"
+);
 
 const MAX_TIMELINE = 6;
 const MIN_TIMELINE = 3;

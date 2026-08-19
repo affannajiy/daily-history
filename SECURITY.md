@@ -89,8 +89,15 @@ workflow covers the crashes that happen before the app can speak.
 - **The recipient's inbox is the only place output goes, and it is one address.**
   A compromised `RECIPIENT_EMAIL` secret would redirect the digest; nothing here
   detects that.
-- **No SAST/DAST.** There is no runtime attack surface to scan dynamically, and
-  static analysis beyond `tsc --strict` is not wired up.
+- **No DAST.** There is no listening service to scan dynamically. Static
+  analysis is CodeQL default setup, on `main`, for JavaScript/TypeScript and
+  Actions.
+- **Configuration is trusted, but checked.** CodeQL treats `process.env` as
+  attacker input; here it is set by the workflow and by the local `.env`, so the
+  real threat is a mistake rather than an attack. `ARCHIVE_DIR` and
+  `SENT_LOG_PATH` are confined to the workspace by `safePath.ts`, and the model
+  ids are pattern-checked before going into a URL, so a bad value stops the run
+  instead of writing or requesting somewhere unintended.
 - **Model output is not sandboxed.** It is escaped, guarded and stripped of
   URLs, but a prompt-injected article could still influence *prose*. The
   grounding rules bound what that prose may contain; they do not eliminate it.

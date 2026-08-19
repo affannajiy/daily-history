@@ -31,6 +31,7 @@ verified feed, never from a model.
 | `sendEmail.ts` | Resend delivery |
 | `alert.ts` | Failure alert — plain mail, redacted error, no template |
 | `redact.ts` | Strips credentials from anything leaving the process |
+| `safePath.ts` | Confines configurable output paths to the workspace |
 | `rankTest.ts` | Subject-page regression test |
 
 ## Read the skill before you edit
@@ -104,6 +105,11 @@ Local secrets come from `.env` via `dotenv/config`. Required: `GEMINI_API_KEY`
   escapes. Text goes through `esc()`; anything landing in an `href` or `src`
   goes through `safeUrl()`, which drops non-`http(s)` schemes. They are not
   interchangeable — entity-encoding does not stop `javascript:`.
+- **Anything from `process.env` that lands in a path or a URL is checked first.**
+  `ARCHIVE_DIR` and `SENT_LOG_PATH` go through `safePath()`; the model ids go
+  through `modelId()` in `fetchHistory.ts`. The environment is set by the
+  workflow, not by a reader, so these are mistake guards — but they are also what
+  keeps CodeQL's `js/path-injection` and `js/request-forgery` findings closed.
 - Timezone is pinned to `Asia/Kuala_Lumpur` via luxon; never use the host clock.
 - TypeScript strict, CommonJS, `Node16` resolution, `src/` → `dist/`. CI on Node
   22, local dev on Node 24. `scripts/` is outside `rootDir` and is not
