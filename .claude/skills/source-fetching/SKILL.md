@@ -163,3 +163,19 @@ Two properties hold across the fetching layer and are worth keeping:
   ever fetched back, so there is no request-forgery path. Do not add one.
 - **URLs that reach the templates are checked at the point of use**, not
   trusted from upstream — see `safeUrl()` in the `email-template` skill.
+
+## `stripHtml` decodes `&amp;` last
+
+Entity decoding is order-sensitive and CodeQL caught this one (`js/double-escaping`,
+CWE-116). The ampersand is both its own character and the first character of
+every other entity, so decoding it first re-creates entities the later passes
+then decode a second time: `&amp;quot;` — a credit line that literally contains
+the text `&quot;` — came out as a bare `"`.
+
+Rule: **when escaping, escape `&` first; when unescaping, unescape it last.**
+Adding an entity to that chain means adding it above the `&amp;` line, never
+below.
+
+`&lt;` and `&gt;` are left encoded on purpose. Tag-stripping has already run, so
+decoding them would hand a live-looking `<script>` back to the caller with only
+downstream escaping in the way. No credit line needs angle brackets that badly.

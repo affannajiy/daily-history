@@ -137,15 +137,29 @@ async function fetchPage(title: string): Promise<PageResult | null> {
 const FREE_LICENCES = /^(pd|cc0|cc-by(-sa)?(-\d(\.\d)?)?([a-z-]*)?)$/i;
 const PUBLIC_DOMAIN_HINT = /public domain|^pd|cc0/i;
 
-/** extmetadata values arrive as HTML fragments; the email needs plain text. */
+/**
+ * extmetadata values arrive as HTML fragments; the email needs plain text.
+ *
+ * **`&amp;` is decoded last, and the order is the whole correctness of this
+ * function.** The ampersand is both a character in its own right and the lead
+ * character of every other entity, so decoding it first re-creates entities that
+ * the later passes then decode again: `&amp;quot;` — a credit line that
+ * literally contains the text `&quot;` — became `&quot;` and then `"`. Decoding
+ * it last leaves it as the single `&` it was always meant to be.
+ *
+ * `&lt;` and `&gt;` are deliberately **not** decoded. Tag-stripping has already
+ * run by that point, so decoding them would hand a live-looking `<script>` back
+ * to the caller and leave nothing but downstream escaping between it and the
+ * page. Nothing here needs angle brackets in prose badly enough to trade that.
+ */
 function stripHtml(value: unknown): string {
   if (typeof value !== "string") return "";
   return value
     .replace(/<[^>]*>/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;|&apos;/g, "'")
     .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
 }
