@@ -27,7 +27,7 @@ jobs:
       # it does not need the push token sitting in `.git/config` while `npm
       # start` parses untrusted feed and model responses. The `site/` checkout
       # below keeps its credentials, because it is the one that pushes.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -37,7 +37,7 @@ jobs:
       # generated HTML, and the bot's daily commit never collides with local
       # work. `fetch-depth: 0` is not needed — only the tip is ever appended to.
       - name: Check out the archive branch
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: gh-pages
           path: site
