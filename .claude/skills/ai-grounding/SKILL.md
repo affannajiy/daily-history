@@ -160,3 +160,27 @@ than throwing: a bad override should cost you your override, not the digest.
 
 Keep the regex tight if you widen it. Anything that admits `:`, `?`, `@` or a
 second slash puts URL structure back under environment control.
+
+## When the write pass cannot be completed, ask for less
+
+The write prompt is the largest call the job makes: three slots is ~8.4k tokens,
+which is precisely what Groq's free tier will not finish. On 20 August 2026
+Gemini's daily quota ran out mid-run, Groq failed the full prompt twice, and an
+edition with a perfectly good global event died with it.
+
+`generateHistory` now retries once with **the global slot alone** — a third of
+the tokens, and it fits where the full prompt did not. The regional cards were
+already nullable, so a narrowed edition renders the same way a thin day does.
+
+Two things this must keep doing:
+
+- **It narrows the request, never the guards.** Every card that renders passed
+  the same checks. Do not turn this into a "try again with a looser parser".
+- **`featuredKeys` follows the slots that were actually written.** An event
+  dropped by the narrowed pass was never sent, so it stays available for a
+  future day. Marking the whole plan as used would silently burn it.
+
+A parse failure also logs the first 300 characters of what the model returned.
+Before that, the only trace was the guard's own message, which cannot tell a
+truncated response from one that merely failed a check — and the run is long
+over by the time anyone looks.

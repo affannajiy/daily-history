@@ -635,6 +635,13 @@ async function complete(
           console.warn(`${provider} returned unusable JSON, retrying once...`);
           continue;
         }
+        // Log what it actually said. A parse failure here used to surface only
+        // as the guard's own message ("no valid global card"), which does not
+        // distinguish a truncated response from one that simply failed a guard,
+        // and the run is over by the time anyone reads the log. The body is
+        // model output — no key ever reaches it.
+        console.warn(`${provider} returned unusable JSON again: ${String(err)}`);
+        console.warn(`${provider} response began: ${raw.slice(0, 300)}`);
         throw err;
       }
     }
@@ -772,33 +779,64 @@ export async function generateHistory(
     anchorKind: p.anchorKind,
   }));
 
-  const writePrompt = buildWritePrompt(month, day, slots);
-  const parseAll = (raw: string): HistoryData => {
-    const parsed = JSON.parse(extractJson(raw)) as any;
-    const slotFor = (key: WriteSlot["key"]) => slots.find((s) => s.key === key);
+  /** Parser bound to a specific set of slots, so a narrowed pass parses itself. */
+  const parseFor =
+    (active: WriteSlot[]) =>
+    (raw: string): HistoryData => {
+      const parsed = JSON.parse(extractJson(raw)) as any;
+      const slotFor = (key: WriteSlot["key"]) => active.find((s) => s.key === key);
 
-    const globalSlot = slotFor("global")!;
-    const global = parseEventCard(parsed?.global, globalSlot.enriched);
-    if (!global) throw new Error("Writing pass returned no valid global card.");
+      const globalSlot = slotFor("global")!;
+      const global = parseEventCard(parsed?.global, globalSlot.enriched);
+      if (!global) throw new Error("Writing pass returned no valid global card.");
 
-    const region = (key: "southeastAsia" | "malaysia"): Card | null => {
-      const slot = slotFor(key);
-      if (!slot) return null;
-      return slot.kind === "event"
-        ? parseEventCard(parsed?.[key], slot.enriched)
-        : parseFigureCard(parsed?.[key], slot.enriched, slot.anchorKind ?? "births");
+      const region = (key: "southeastAsia" | "malaysia"): Card | null => {
+        const slot = slotFor(key);
+        if (!slot) return null;
+        return slot.kind === "event"
+          ? parseEventCard(parsed?.[key], slot.enriched)
+          : parseFigureCard(parsed?.[key], slot.enriched, slot.anchorKind ?? "births");
+      };
+
+      return { global, southeastAsia: region("southeastAsia"), malaysia: region("malaysia") };
     };
 
-    return { global, southeastAsia: region("southeastAsia"), malaysia: region("malaysia") };
-  };
+  /**
+   * The write pass is all-or-nothing per call, and a three-slot prompt is the
+   * largest thing the job asks for — ~8.4k tokens, which is exactly what Groq's
+   * free tier will not complete. On 20 August 2026 Gemini's daily quota ran out
+   * and Groq then failed the full prompt twice, so a digest with a perfectly
+   * good global event died with it.
+   *
+   * The regional cards are already nullable: a day with no verified Malaysian
+   * event renders without one. So the second attempt asks for the global card
+   * alone, which is a third of the tokens and fits where the full prompt did
+   * not. A thin edition is a worse morning than a full one; no edition is a
+   * failure. This is a narrower request, not a weaker guard — every card that
+   * does render passed the same checks it always did.
+   */
+  let active = slots;
+  let written = await complete(buildWritePrompt(month, day, slots), parseFor(slots)).catch(
+    async (err) => {
+      if (slots.length === 1) throw err;
+      console.warn(
+        `Full write pass failed (${String(err)}); retrying with the global card alone.`
+      );
+      active = slots.filter((s) => s.key === "global");
+      return complete(buildWritePrompt(month, day, active), parseFor(active));
+    }
+  );
 
-  const written = await complete(writePrompt, (raw) => parseAll(raw));
   return {
-    data: parseAll(written.raw),
+    data: parseFor(active)(written.raw),
     provider: written.provider,
     // What was actually featured, so the caller can record it and not repeat it
     // next year. Taken from the plan rather than the cards: card titles are
-    // model-written and would not match the feed entry a year later.
-    featuredKeys: plan.map((p) => eventKey(p.source)),
+    // model-written and would not match the feed entry a year later. Filtered to
+    // the slots that were actually written — an event dropped by the narrowed
+    // pass was never sent, and must stay available for a future day.
+    featuredKeys: plan
+      .filter((p) => active.some((s) => s.key === p.key))
+      .map((p) => eventKey(p.source)),
   };
 }
