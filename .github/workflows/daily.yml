@@ -52,8 +52,31 @@ jobs:
       # else in this pipeline would notice one. Production dependencies only —
       # `sharp` and `tsx` are dev tooling and never run in `npm start`, so an
       # advisory there must not block the morning's digest.
+      # npm exits 1 both for a real advisory and for a broken audit endpoint
+      # (registry 503s happen). Only the first may stop the digest, so parse the
+      # JSON: no parseable report means the registry is down, which is a warning.
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: |
+          set +e
+          report=$(npm audit --omit=dev --audit-level=high --json 2>audit.err)
+          status=$?
+          set -e
+          if [ $status -eq 0 ]; then
+            echo "No high or critical advisories in production dependencies."
+            exit 0
+          fi
+          high=$(printf '%s' "$report" | jq -r '.metadata.vulnerabilities | (.high + .critical)' 2>/dev/null || echo "")
+          if [ -z "$high" ]; then
+            echo "::warning::npm audit could not reach the registry; skipping the check."
+            cat audit.err || true
+            exit 0
+          fi
+          if [ "$high" -gt 0 ]; then
+            echo "::error::$high high or critical advisories in production dependencies."
+            printf '%s' "$report" | jq '.vulnerabilities'
+            exit 1
+          fi
+          echo "Audit reported no high or critical advisories."
 
       - run: npm run build
 
