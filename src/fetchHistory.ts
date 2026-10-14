@@ -57,6 +57,17 @@ const GEMINI_MODEL = modelId(
   "gemini-3.6-flash",
   "GEMINI_MODEL"
 );
+/**
+ * A 503 "high demand" from Gemini is per model, not per account: on 14 October
+ * 2026 `gemini-3.6-flash` refused three times in ten seconds and the run fell
+ * through to Groq, which then failed too. The lite model is served from a
+ * separate pool, so it gets a turn before Groq does.
+ */
+const GEMINI_LITE_MODEL = modelId(
+  process.env.GEMINI_FALLBACK_MODEL,
+  "gemini-3.5-flash-lite",
+  "GEMINI_FALLBACK_MODEL"
+);
 const GROQ_MODEL = modelId(
   process.env.GROQ_MODEL,
   "openai/gpt-oss-120b",
@@ -369,7 +380,46 @@ function timeline(v: unknown): TimelineBeat[] {
     .map((b: any) => ({ when: str(b?.when), what: str(b?.what) }))
     .filter((b) => b.when && b.what && /\d/.test(b.when))
     .slice(0, MAX_TIMELINE);
-  return beats.length >= MIN_TIMELINE ? beats : [];
+  return beats.length >= MIN_TIMELINE ? chronological(beats) : [];
+}
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/**
+ * Sortable key for a beat's "when", or null when no year can be read. Year
+ * first, then month, then day; a bare "1964" sorts before "14 Oct 1964".
+ */
+function whenKey(when: string): number | null {
+  const s = when.toLowerCase();
+  let year: number;
+  let rest = s;
+  const bc = s.match(/\b(\d{1,4})\s*bce?\b/);
+  const plain = s.match(/\b(\d{3,4})s?\b/);
+  const era = s.match(/\b(?:ad|ce)\s*(\d{1,4})\b|\b(\d{1,4})\s*(?:ad|ce)\b/);
+  if (bc) [year, rest] = [-Number(bc[1]), s.replace(bc[0], " ")];
+  else if (plain) [year, rest] = [Number(plain[1]), s.replace(plain[0], " ")];
+  else if (era) [year, rest] = [Number(era[1] ?? era[2]), s.replace(era[0], " ")];
+  else return null;
+  const m = rest.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?/);
+  const month = m ? MONTHS.indexOf(m[1]) + 1 : 0;
+  const d = rest.match(/\b([12]?\d|3[01])(?:st|nd|rd|th)?\b/);
+  const day = month && d ? Number(d[1]) : 0;
+  return year * 10000 + month * 100 + day;
+}
+
+/**
+ * The prompt asks for chronological order and the model does not always obey
+ * (a Groq card put 1962 after 14 Oct 1964). Stable sort, so ties keep the
+ * model's order; if any beat has no readable year, leave the order alone rather
+ * than guess where it belongs.
+ */
+function chronological(beats: TimelineBeat[]): TimelineBeat[] {
+  const keys = beats.map((b) => whenKey(b.when));
+  if (keys.some((k) => k === null)) return beats;
+  return beats
+    .map((b, i) => ({ b, k: keys[i] as number }))
+    .sort((x, y) => x.k - y.k)
+    .map(({ b }) => b);
 }
 
 /** Digits with separators removed, so "1,750" in a card matches "1750" in prose. */
@@ -572,11 +622,20 @@ function parseFigureCard(
  */
 const MODEL_TIMEOUT_MS = 150000;
 
-async function callGemini(prompt: string): Promise<string> {
+/**
+ * Pause before the whole provider chain is tried a second time. A demand spike
+ * on Gemini and a flaky generation on Groq are both short-lived; a minute of
+ * sleep costs nothing on a once-a-day job, a lost digest costs the day.
+ */
+const LAP_PAUSE_MS = 60000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function callGemini(prompt: string, model: string): Promise<string> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set.");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
   const json = await postJson(
     url,
     {
@@ -584,7 +643,7 @@ async function callGemini(prompt: string): Promise<string> {
       // temperature 0 → factual selection and close paraphrase, not creative recall.
       generationConfig: { responseMimeType: "application/json", temperature: 0 },
     },
-    { timeoutMs: MODEL_TIMEOUT_MS, label: "Gemini" }
+    { timeoutMs: MODEL_TIMEOUT_MS, label: model }
   );
 
   const text: string | undefined = json?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -601,7 +660,13 @@ async function callGroq(prompt: string): Promise<string> {
     {
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
+      // No `response_format`. With it, Groq validates the JSON server-side and
+      // answers a miss with a 400 `json_validate_failed` — on gpt-oss that
+      // happens intermittently, with an empty `failed_generation`, and a 400 is
+      // not retried, so one bad sample ended the run (14 October 2026). The
+      // prompt still asks for JSON only, `extractJson` tolerates prose and fences
+      // around it, and the parse guards check everything the server check did —
+      // a miss now lands in the retry-on-unusable-JSON path below instead.
       temperature: 0,
     },
     {
@@ -616,20 +681,24 @@ async function callGroq(prompt: string): Promise<string> {
   return text;
 }
 
-/** Runs a prompt through Groq, falling back to Gemini, retrying each once. */
+/**
+ * Runs a prompt down the provider chain — Gemini, Gemini lite, Groq — retrying
+ * unusable JSON once per provider. If every provider fails, waits and walks the
+ * chain once more before giving up.
+ */
 async function complete(
   prompt: string,
   parse: (raw: string) => void
 ): Promise<{ raw: string; provider: Provider }> {
   const attempt = async (
     fn: (p: string) => Promise<string>,
-    provider: Provider
-  ): Promise<{ raw: string; provider: Provider }> => {
+    provider: string
+  ): Promise<string> => {
     for (let i = 0; i < 2; i++) {
       const raw = await fn(prompt);
       try {
         parse(raw);
-        return { raw, provider };
+        return raw;
       } catch (err) {
         if (i === 0) {
           console.warn(`${provider} returned unusable JSON, retrying once...`);
@@ -653,13 +722,30 @@ async function complete(
   // tokens-per-minute free tier — a three-slot write pass is ~8.4k tokens and
   // gets a flat 413, so Groq can no longer be relied on for the day's main call.
   // It is still a real fallback: thin days fit, and the two providers do not
-  // share an outage.
-  try {
-    return await attempt(callGemini, "Gemini");
-  } catch (err) {
-    console.warn("Gemini failed, falling back to Groq:", String(err));
-    return await attempt(callGroq, "Groq");
+  // share an outage. The lite model sits between them because a Gemini 503 is a
+  // per-model capacity refusal, not an outage of the provider.
+  const chain: Array<{ name: string; provider: Provider; fn: (p: string) => Promise<string> }> = [
+    { name: GEMINI_MODEL, provider: "Gemini", fn: (p) => callGemini(p, GEMINI_MODEL) },
+    { name: GEMINI_LITE_MODEL, provider: "Gemini", fn: (p) => callGemini(p, GEMINI_LITE_MODEL) },
+    { name: GROQ_MODEL, provider: "Groq", fn: callGroq },
+  ];
+
+  let lastError: unknown;
+  for (let lap = 0; lap < 2; lap++) {
+    if (lap > 0) {
+      console.warn(`Every provider failed; waiting ${LAP_PAUSE_MS / 1000}s for one more pass...`);
+      await sleep(LAP_PAUSE_MS);
+    }
+    for (const { name, provider, fn } of chain) {
+      try {
+        return { raw: await attempt(fn, name), provider };
+      } catch (err) {
+        lastError = err;
+        console.warn(`${name} failed:`, String(err));
+      }
+    }
   }
+  throw lastError;
 }
 
 // ---------------------------------------------------------------------------

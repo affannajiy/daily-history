@@ -259,6 +259,7 @@ Optional environment variables (defaults shown):
 
 ```env
 GEMINI_MODEL=gemini-3.6-flash
+GEMINI_FALLBACK_MODEL=gemini-3.5-flash-lite
 GROQ_MODEL=openai/gpt-oss-120b
 FROM_EMAIL=History Today <onboarding@resend.dev>
 ```

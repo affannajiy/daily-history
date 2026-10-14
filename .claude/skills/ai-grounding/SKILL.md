@@ -5,8 +5,9 @@ description: Working on the AI pipeline in src/fetchHistory.ts — prompts, mode
 
 # The AI pipeline
 
-`src/fetchHistory.ts`. Gemini first (`gemini-3.6-flash`), Groq as fallback
-(`openai/gpt-oss-120b`), `temperature: 0` throughout. Both go
+`src/fetchHistory.ts`. Chain: `gemini-3.6-flash` → `gemini-3.5-flash-lite` →
+Groq `openai/gpt-oss-120b`, `temperature: 0` throughout. If all three fail, a
+60s pause and one more lap of the whole chain, then hard failure. Both go
 through `http.ts` (3 attempts, jittered backoff, 60s timeout — a writing pass
 over three articles is slow by nature and must not be aborted early).
 
@@ -54,6 +55,7 @@ failed exactly that way at least once.
 | Guard | Rule | Failure it prevents |
 | --- | --- | --- |
 | `MIN_TIMELINE` | 3+ dated beats or the block is dropped (max 6) | Two-item stub timelines |
+| `chronological()` | Beats re-sorted by year/month/day parsed from `when`; left as-is if any year is unreadable | Groq listing 1962 after 14 Oct 1964 |
 | `numbers()` | 2+ stats; bare years rejected; each figure's digits must occur in the source | "1945 — Year of the end of the Second World War" |
 | `keyFigures()` | The name must appear in the source text | George Orwell credited on the Berlin Wall |
 | `standfirst()` | ≥8 words, and must not restate the body's opening sentence | The fragment "Barbed Wire Sunday" |
@@ -142,6 +144,25 @@ rescued from repo secrets without a deploy.
 Groq's current chat line is gpt-oss, a reasoning model. It puts its chain of
 thought in a separate `reasoning` field, so `message.content` is still bare JSON
 and the parsers are unaffected.
+
+## Why the chain is three deep and Groq sends no `response_format`
+
+14 October 2026: `gemini-3.6-flash` answered 503 "high demand" three times in
+ten seconds, Groq answered 400 `json_validate_failed` with an empty
+`failed_generation`, and the digest died on the **select** pass.
+
+- **Gemini 503 is per model.** The lite model has its own capacity, so it goes
+  before Groq. Override with `GEMINI_FALLBACK_MODEL`; it goes through
+  `modelId()` like the others.
+- **Groq's server-side JSON check is off.** `response_format: json_object` makes
+  Groq validate output and 400 on a miss; gpt-oss misses intermittently
+  ([community reports](https://community.groq.com/t/guaranteed-structured-output-is-not-working-bug-report/1306)),
+  and `http.ts` correctly never retries a 400. Without it, a bad sample reaches
+  `extractJson` + the parse guards, which validate the same thing and retry once.
+  Strict `json_schema` was rejected: reports say gpt-oss ignores or flakes on it.
+  **Do not put `response_format` back** — the guards are the validator.
+- **The second lap** rides out short spikes. It must not loosen anything; it
+  replays the identical request.
 
 ## Model ids are pattern-checked before they reach a URL
 
