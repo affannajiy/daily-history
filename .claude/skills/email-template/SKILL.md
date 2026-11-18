@@ -1,6 +1,6 @@
 ---
 name: email-template
-description: Editing what the reader sees — src/buildEmail.ts, buildText.ts, subject.ts. Layout, colour, card blocks, the subject line, the preheader, the plain-text part, images. Use when changing how the digest looks or reads, adding or removing a block, restyling, or auditing against rulebook/UI-UX_Rulebook.md.
+description: Editing what the reader sees — src/buildEmail.ts, buildText.ts, subject.ts. Layout, colour, card blocks, the subject line, the preheader, the plain-text part, images. Use when changing how the digest looks or reads, adding or removing a block, restyling, or auditing against rulebooks/UI-UX_Rulebook.md.
 ---
 
 # Editing the email
@@ -75,7 +75,7 @@ card opens with a broken box that shifts the layout when it loads), and the
 credit rendered as a **caption, not alt text** — a screen reader announcing a
 licence name learns nothing about the picture.
 
-## Rulings already made against `rulebook/UI-UX_Rulebook.md`
+## Rulings already made against `rulebooks/UI-UX_Rulebook.md`
 
 These are in the code as comments. Read them before restyling — each one is a
 fix for a defect that was found in an audit, so reverting one reintroduces it.

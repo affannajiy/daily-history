@@ -1,6 +1,6 @@
 # Rulebooks
 
-**Last updated:** 2026-08-20
+**Last updated:** 2026-11-18
 
 Portable reference files. No project-specific content, no history — pure principle tables.
 Drop any of these into a project (or hand to a person) and it works standalone.
@@ -35,7 +35,7 @@ Contents:
 | File        | Covers                                                                                                                                                                                                                                                            |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | UI-UX       | Nielsen's 10 usability heuristics, 12 Gestalt principles, Laws of UX, WCAG 2.2 accessibility, responsive & mobile behavior, visual hierarchy, interaction patterns & states                                                                                       |
-| Security    | Saltzer and Schroeder design principles, modern secure-by-design additions, secure coding controls (ASVS 5.0), data protection & retention, OWASP Top 10:2025, OWASP Top 10 for LLM applications (2025), supply chain & secure SDLC (SSDF, SLSA), run and respond |
+| Security    | Saltzer and Schroeder design principles, modern secure-by-design additions, secure coding controls (ASVS 5.0), data protection & retention, OWASP Top 10:2025, OWASP Top 10 for LLM applications (2026) with the Agentic Top 10, supply chain & secure SDLC (SSDF, SLSA), run and respond |
 | Engineering | Common failure modes (anti-patterns), core engineering principles, code quality & reliability, delivery & maintenance, run & measure, accessibility & localization in code                                                                                        |
 
 Every file ends with a conflict table and a tiebreaker, so a disagreement between two rules
@@ -71,7 +71,7 @@ routing table above says which. Loading all three costs roughly the sum.
 | File        | Approximate tokens |
 | ----------- | ------------------ |
 | UI-UX       | 5,600              |
-| Security    | 7,000              |
+| Security    | 7,600              |
 | Engineering | 5,200              |
 | README      | 1,300              |
 

@@ -1,7 +1,7 @@
 # Security posture
 
 What this project's threat model actually is, and what it does about it.
-`rulebook/SECURITY_Rulebook.md` is the general reference — *what the principles
+`rulebooks/SECURITY_Rulebook.md` is the general reference — *what the principles
 are*. This file is the specific answer — *what this repo does*, and what it
 deliberately does not.
 
@@ -70,9 +70,38 @@ responses, and whatever the model writes. Both are treated as hostile.
 - `permissions: contents: write` is the narrowest grant that still allows the
   archive commit. Actions has no per-step scoping, hence the credential drop
   above.
+- `npm start` has a 90-minute step limit and the job a 120-minute one, instead
+  of GitHub's 6-hour default. A hung provider can no longer keep a runner
+  holding every secret for most of a day. The step limit is the one that
+  matters: a timed-out step still fires the failure alert, a cancelled job
+  does not.
 - `npm audit --omit=dev --audit-level=high` runs before the send. Production
   dependencies only: `sharp` and `tsx` are dev tooling that never executes in
   `npm start`, and an advisory there must not cost a morning's digest.
+
+## Against the OWASP Top 10 for LLM applications (2026)
+
+The rulebook's §4 stance is to build the system so that when the model is fooled,
+nothing important breaks. Here the model is a writer with no tools: it receives
+verified text and returns JSON, and code decides what of that JSON survives.
+
+| # | Risk | What this repo does |
+| --- | --- | --- |
+| LLM01 | Prompt injection | Wikipedia text is publicly editable and reaches the prompt. The model can act on nothing, so injection can only change prose. Dates, URLs, subject and images are discarded if the model writes them. |
+| LLM02 | Sensitive information disclosure | No secret or personal data goes into a prompt. The API key travels in the request URL, never the prompt, and is redacted from errors. |
+| LLM03 | Excessive agency | None. No tools, no function calling, no side effects. Sending, logging and publishing are code paths the model cannot reach. |
+| LLM04 | Supply chain | Hosted models only, nothing loaded locally. Model ids are pattern-checked before they go into a URL. |
+| LLM05 | Data and model poisoning | Not applicable: no training, fine-tuning or retrieval index of our own. A poisoned Wikipedia article is LLM01. |
+| LLM06 | Unbounded consumption | One run a day, two passes, a fixed retry budget in `http.ts`, article extracts capped by length, and a 90-minute limit on `npm start` in the workflow. No output-token cap is set, by choice: both default models reason, their thinking counts toward the cap, and a cap set too low cuts off the JSON and loses the digest. The free tier is the spend ceiling, and the time limit stops a runaway. |
+| LLM07 | Misinformation | The main risk, and the reason the design exists. Dates come only from the verified feed, every card cites its source article, and guards drop a block rather than let it ship unchecked. |
+| LLM08 | Hidden context exposure | Nothing to hide. The prompts are in the repo and hold no credential or authorization rule. |
+| LLM09 | Vector and embedding weaknesses | Not applicable: no embeddings, no vector store. |
+| LLM10 | Improper output handling | Model output is untrusted input to `buildEmail.ts`: escaped with `esc()`, URLs dropped, shape checked by the `parse*Card` guards. It never reaches a shell, query or file path. |
+
+The **OWASP Top 10 for Agentic Applications 2026** does not apply: the model has
+no tools, no memory across runs (the sent-log is read by code, not given to the
+model as instructions), and no other agents. Revisit both tables if any of that
+changes.
 
 ## Failing securely
 

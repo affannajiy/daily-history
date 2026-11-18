@@ -17,6 +17,9 @@ permissions:
 jobs:
   send-email:
     runs-on: ubuntu-latest
+    # Backstop for every step. GitHub's default is 6 hours, which is 6 hours of
+    # a runner holding every secret here. The real cap is on `npm start` below.
+    timeout-minutes: 120
     steps:
       # Actions are pinned by commit SHA, not by tag. A tag is mutable: whoever
       # controls the action can repoint `v5` at new code, and that code runs in
@@ -86,7 +89,13 @@ jobs:
       - name: Check subject-page ranking
         run: npm run test:ranking
 
+      # Bounds the provider chain (Security Rulebook §4, LLM06). A normal run
+      # takes minutes; the slow legitimate case — one provider hanging on every
+      # attempt, the next answering on the second lap — is under an hour.
+      # Step-level, not job-level, on purpose: a step that times out counts as a
+      # failure, so the alert step below still runs. A job timeout cancels it.
       - run: npm start
+        timeout-minutes: 90
         env:
           # Write the edition and the sent log into the gh-pages checkout, not
           # into the source tree. Both must move together: the archive index and
@@ -116,7 +125,7 @@ jobs:
           DATE=$(TZ=Asia/Kuala_Lumpur date "+%B %-d, %Y")
           # No job log is quoted: it is not secret-masked in a file the way the
           # Actions UI masks it on screen, and this mail leaves that protection.
-          jq -n --arg from "${FROM_EMAIL:-History Today <onboarding@resend.dev>}"                 --arg to "$RECIPIENT_EMAIL"                 --arg subject "FAILED: History Today — $DATE (before send)"                 --arg text "The workflow failed before the digest could report anything itself, so there is no error text here — the build, the ranking test or a secret is the likely cause.
+          jq -n --arg from "${FROM_EMAIL:-History Today <onboarding@resend.dev>}"                 --arg to "$RECIPIENT_EMAIL"                 --arg subject "FAILED: History Today — $DATE (before send)"                 --arg text "The workflow failed before the digest could report anything itself, so there is no error text here — the build, the ranking test, a secret, or npm start hitting its 90-minute limit is the likely cause.
 
           Run log: $RUN_URL
 

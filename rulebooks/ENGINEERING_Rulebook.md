@@ -1,6 +1,6 @@
 # Engineering Rulebook
 
-**Last updated:** 2026-08-20
+**Last updated:** 2026-11-18
 
 Portable reference. One line per failure mode or principle. No project architecture — that
 belongs in the project's own architecture document and changelog.

@@ -41,13 +41,13 @@ which is what stops it being undone by accident. Load the matching skill first:
 
 | Touching | Skill |
 | --- | --- |
-| `buildEmail.ts`, `buildText.ts`, `subject.ts`, `preview.ts`, anything visual, `rulebook/UI-UX_Rulebook.md` | `email-template` |
+| `buildEmail.ts`, `buildText.ts`, `subject.ts`, `preview.ts`, anything visual, `rulebooks/UI-UX_Rulebook.md` | `email-template` |
 | `fetchHistory.ts`, prompts, guards, filler prose, references, `sentLog.ts` | `ai-grounding` |
 | `fetchOnThisDay.ts`, `enrich.ts`, `regions.ts`, `fetchFigures.ts`, `http.ts`, ranking test | `source-fetching` |
 | Workflow, cron, secrets, CI, Pages, avatar/BIMI, "email didn't arrive", anything in `SECURITY.md` | `deploy-and-ops` |
 
 `DEVNOTE.md` is the human runbook for deploying and operating it. `SECURITY.md`
-is the threat model and posture; `rulebook/` holds the general references it is
+is the threat model and posture; `rulebooks/` holds the general references it is
 measured against.
 
 ## Commands

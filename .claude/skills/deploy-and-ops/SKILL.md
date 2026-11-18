@@ -82,7 +82,7 @@ Locally the same names live in `.env`, loaded by `dotenv/config` in `index.ts`.
 Node 22 (`actions/setup-node`), `npm ci` → `npm audit` → `npm run build` →
 `npm run test:ranking` → `npm start` → commit archive. Local dev is Node 24.
 
-Three things in the workflow are security posture, not style, and undoing any of
+Four things in the workflow are security posture, not style, and undoing any of
 them is a regression:
 
 - **Actions are pinned by commit SHA**, with the tag in a trailing comment. A tag
@@ -96,6 +96,13 @@ them is a regression:
 - **`npm audit --omit=dev --audit-level=high` runs before the send.** Production
   dependencies only: `sharp` and `tsx` never execute in `npm start`, and an
   advisory in dev tooling must not cost a morning's digest.
+- **`npm start` has `timeout-minutes: 90`; the job has 120.** The default is 6
+  hours with every secret loaded. Keep the cap on the *step*: a timed-out step is
+  a failure, so the alert step still runs; a job-level timeout cancels the job and
+  the alert with it. Do not cut 90 below an hour: a hung provider plus the
+  second lap legitimately takes most of one. Do not add `maxOutputTokens` /
+  `max_completion_tokens` instead: both models reason, thinking counts toward the
+  cap, and a truncated response kills the digest.
 
 `permissions: contents: write` is job-wide because Actions has no per-step
 scope. The credential drop above is the compensating control.

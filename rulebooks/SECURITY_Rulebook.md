@@ -1,6 +1,6 @@
 # Security Rulebook
 
-**Last updated:** 2026-08-20
+**Last updated:** 2026-11-18
 
 Portable reference. One line per principle, control, or named risk. No project posture — what
 *this* system does belongs in the project's own `SECURITY.md`.
@@ -263,24 +263,45 @@ categories, from 39,080 CVE records. XSS (CWE-79) first, SQL injection (CWE-89) 
 
 ---
 
-## §4 OWASP Top 10 for LLM applications (2025)
+## §4 OWASP Top 10 for LLM applications (2026)
 
 A separate threat model, not a subset of §3. A model reads instructions and data on the same
 channel, so the old boundary between code and input does not exist. Read this for any feature
 that sends a prompt, gives a model a tool, or puts model output into another system.
 
+The 2026 list (August 2026) ranks by a community vote (75%) checked against 6,639 real
+incidents (25%). Its stance: build the system around the model so that when the model is
+fooled, nothing important breaks.
+
 | # | Risk | What it is | What prevents it |
 | --- | --- | --- | --- |
-| LLM01 | **Prompt injection** | Text in a document, page, email, or tool result instructs the model, and it obeys. Direct comes from the user, indirect from content the model reads. | Treat every tool result and retrieved document as data, never instruction. Ask a human before any side effect. |
+| LLM01 | **Prompt injection** | Text in a document, page, email, image, audio track, or tool result instructs the model, and it obeys. Direct comes from the user, indirect from content the model reads. | Treat every tool result and retrieved document as data, never instruction. Ask a human before any side effect. |
 | LLM02 | **Sensitive information disclosure** | The model reveals a secret, personal data, or proprietary content from context, training, or the index. | Keep secrets out of context. Give a scoped credential, not a raw key. Filter output as well as input. |
-| LLM03 | **Supply chain** | A poisoned model file, adapter, plugin, or tool server enters the stack. Some model formats run code on load. | §5 applies to models and tools, not only packages. Pin the source. Prefer a safe serialization format. |
-| LLM04 | **Data and model poisoning** | Crafted data planted in training, fine-tuning, or a retrieval corpus changes behavior later. | Control who can write to a corpus. Track lineage. Test against a held-out behavior set after every update. |
-| LLM05 | **Improper output handling** | Model output reaches a shell, query, browser, or file path unvalidated. The model becomes the injection vector. | Validate model output at the consumer like untrusted user input. Encode for the destination, per §2b. |
-| LLM06 | **Excessive agency** | The model holds more tools, permission, or autonomy than the task needs. | Least privilege for tools. Narrowest tool, narrowest scope. Human approval for anything irreversible. |
-| LLM07 | **System prompt leakage** | Somebody extracts the system prompt, and it held a credential or a rule the design depended on. | Never put a secret or authorization rule in a prompt. Enforce in code — open design (§1a.4) applies to prompts. |
-| LLM08 | **Vector and embedding weaknesses** | Retrieval leaks across tenants, or embeds hostile content that steers the model later. | Partition the index per tenant. Same access control on retrieval as on the source. Sanitize on ingest. |
-| LLM09 | **Misinformation** | The model states something false with confidence, and a person or system acts on it. | Cite the source. Verify a factual claim before it triggers an action. Show what the model is unsure about. |
-| LLM10 | **Unbounded consumption** | Uncontrolled inference cost, token use, or a recursive agent loop drains budget and service. | Cap tokens, tool calls, loop depth, and spend per session. Alert on the cost curve. |
+| LLM03 | **Excessive agency** | The model holds more tools, permission, or autonomy than the task needs. Up from sixth: agent deployments are where the damage lands. | Least privilege for tools. Narrowest tool, narrowest scope. Human approval for anything irreversible. |
+| LLM04 | **Supply chain** | A poisoned model file, adapter, plugin, or tool server enters the stack, or a promoted model artifact is not what it claims to be. Some model formats run code on load. | §5 applies to models and tools, not only packages. Pin the source and the digest. Prefer a safe serialization format. |
+| LLM05 | **Data and model poisoning** | Crafted data planted in training, fine-tuning, or a retrieval corpus changes behavior later. Now includes fine-tuning subversion. | Control who can write to a corpus. Track lineage. Test against a held-out behavior set after every update. |
+| LLM06 | **Unbounded consumption** | Uncontrolled inference cost, token use, or a recursive agent loop drains budget and service. | Cap tokens, tool calls, loop depth, and spend per session. Alert on the cost curve. |
+| LLM07 | **Misinformation** | The model states something false with confidence, and a person or system acts on it. Voters ranked it low, incident data ranked it high. | Cite the source. Verify a factual claim before it triggers an action. Show what the model is unsure about. |
+| LLM08 | **Hidden context exposure** | Somebody extracts the system prompt or other context meant to stay out of reach, and it held a credential or a rule the design depended on. Renamed from System Prompt Leakage. | Never put a secret or authorization rule in a prompt or context. Enforce in code. Open design (§1a.4) applies to prompts. |
+| LLM09 | **Vector and embedding weaknesses** | Retrieval leaks across tenants, or embeds hostile content that steers the model later. | Partition the index per tenant. Same access control on retrieval as on the source. Sanitize on ingest. |
+| LLM10 | **Improper output handling** | Model output, including code an assistant generates, reaches a shell, query, browser, or file path unvalidated. The model becomes the injection vector. | Validate model output at the consumer like untrusted user input. Encode for the destination, per §2b. Review generated code like any other change. |
+
+**Boundary with the Agentic list.** This list covers a model as a component inside an
+application. Once the model acts, with tools, memory across sessions, or other agents, pair it
+with the **OWASP Top 10 for Agentic Applications 2026** (December 2025):
+
+| # | Risk |
+| --- | --- |
+| ASI01 | Agent goal hijack |
+| ASI02 | Tool misuse and exploitation |
+| ASI03 | Identity and privilege abuse |
+| ASI04 | Agentic supply chain vulnerabilities |
+| ASI05 | Unexpected code execution (RCE) |
+| ASI06 | Memory and context poisoning |
+| ASI07 | Insecure inter-agent communication |
+| ASI08 | Cascading failures |
+| ASI09 | Human-agent trust exploitation |
+| ASI10 | Rogue agents |
 
 NIST SP 800-218A extends §5 to generative AI and dual-use foundation models. Same four practice
 groups, plus tasks for training data, model artifacts, lineage, and post-release monitoring.
@@ -292,6 +313,9 @@ groups, plus tasks for training data, model artifacts, lineage, and post-release
 Supply chain failures entered the OWASP Top 10 at A03 in 2025. This section is the answer.
 
 ### §5a Framework — NIST SP 800-218 (SSDF)
+
+Version 1.1 is the final text. Rev. 1 (v1.2) is still a draft as of November 2026. It adds a
+continuous-improvement practice (PO.6) and a robust-and-reliable-updates practice (PW.10).
 
 | Group | Name | Covers |
 | --- | --- | --- |
@@ -355,8 +379,8 @@ Supply chain failures entered the OWASP Top 10 at A03 in 2025. This section is t
 | Complete mediation (§1a.3) wants a check per request. Performance wants a cache. | **Cache the data, not the decision.** Never cache the answer past the request that asked. |
 | Fail-safe defaults (§1a.2) want denial on error. Availability wants the service up. | **Deny the request, not the service.** A failed check rejects one action. |
 | A minimal attack surface (§1b.5) wants fewer features. A real user need wants the feature. | **Ship it on purpose, delete what it replaces.** Attack surface grows from what people forget. |
-| An LLM feature needs broad tool access (§4 LLM06). Least privilege wants a narrow grant. | **Narrow the tool, widen the prompt.** One specific tool with a bounded scope, not a general tool and a warning. |
-| A prompt guardrail is quick to write. Open design (§1a.4) says secrecy is not a control. | **Enforce in code, remind in the prompt.** A rule living only in a prompt is bypassed by LLM01 and leaked by LLM07. |
+| An LLM feature needs broad tool access (§4 LLM03). Least privilege wants a narrow grant. | **Narrow the tool, widen the prompt.** One specific tool with a bounded scope, not a general tool and a warning. |
+| A prompt guardrail is quick to write. Open design (§1a.4) says secrecy is not a control. | **Enforce in code, remind in the prompt.** A rule living only in a prompt is bypassed by LLM01 and leaked by LLM08. |
 | A fix needs a major version bump. Stability wants the pinned version. | **Take the fix now, stage the churn.** Ship a branch carrying only the security fix. |
 | Detection (§3 A09) wants detail in the log. Privacy (§2h.5) wants less. | **Log the actor and the action, never the payload.** An identifier and a timestamp rebuild an incident. |
 | Transparency (§1b.12) wants the advisory published. Caution says it helps an attacker. | **Publish after the fix is available, and publish anyway.** Silence protects nobody but the vendor. |
@@ -393,6 +417,6 @@ can use it. A control nobody can operate fails in production — read §1a.8 bes
 | §2c | [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html), [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) |
 | §2i | [GDPR Article 5](https://gdpr-info.eu/art-5-gdpr/), [NIST SP 800-88 Rev. 1](https://csrc.nist.gov/pubs/sp/800/88/r1/final) |
 | §3 | [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [2025 CWE Top 25](https://cwe.mitre.org/top25/archive/2025/2025_cwe_top25.html) |
-| §4 | [OWASP Top 10 for LLM Applications 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/), NIST SP 800-218A |
+| §4 | [OWASP Top 10 for LLM Applications 2026](https://genai.owasp.org/llm-top-10/), [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications/), NIST SP 800-218A |
 | §5 | [NIST SP 800-218 SSDF](https://csrc.nist.gov/projects/ssdf), [SLSA](https://slsa.dev/) |
 | §6 | CISA Known Exploited Vulnerabilities catalog, ISO/IEC 29147 (vulnerability disclosure) |

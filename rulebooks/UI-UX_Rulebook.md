@@ -1,6 +1,6 @@
 # UI/UX Rulebook
 
-**Last updated:** 2026-08-20
+**Last updated:** 2026-11-18
 
 Portable reference. One line per rule. No project content — that belongs in the project's own
 invariants file.
